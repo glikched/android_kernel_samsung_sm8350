@@ -25,7 +25,7 @@ config ZRAM_WRITEBACK
 	 /sys/block/zramX/backing_dev.
 
 	 With /sys/block/zramX/{idle,writeback}, application could ask
-	 idle page's writeback to the backing device to save in memory.
+	 idle pages writeback to the backing device to save in memory.
 
 	 See Documentation/admin-guide/blockdev/zram.rst for more information.
 
@@ -50,3 +50,7 @@ config ZRAM_LRU_WRITEBACK_LIMIT
 	int "Limit zram lru writeback"
 	default 5120
 	depends on ZRAM_LRU_WRITEBACK
+
+config ZRAM_DEFAULT_COMP_ALGORITHM
+	string "Default ZRAM compression algorithm"
+	default "zstd"
