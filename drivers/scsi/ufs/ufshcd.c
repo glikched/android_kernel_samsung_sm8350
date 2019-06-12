@@ -9883,6 +9883,8 @@ int ufshcd_init(struct ufs_hba *hba, void __iomem *mmio_base, unsigned int irq)
 #ifdef CONFIG_SCSI_UFSHCD_QTI
 	ufshcd_cmd_log_init(hba);
 #endif
+	device_enable_async_suspend(dev);
+
 	return 0;
 
 out_remove_scsi_host:
