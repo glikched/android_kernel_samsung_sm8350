@@ -34,7 +34,7 @@ static bool irq_work_claim(struct irq_work *work)
 	oflags = atomic_fetch_or(IRQ_WORK_CLAIMED, &work->flags);
 	/*
 	 * If the work is already pending, no need to raise the IPI.
-	 * The pairing atomic_fetch_andnot() in irq_work_run() makes sure
+	 * The pairing smp_mb() in irq_work_run() makes sure
 	 * everything we did before is visible.
 	 */
 	if (oflags & IRQ_WORK_PENDING)
@@ -149,15 +149,23 @@ static void irq_work_run_list(struct llist_head *list)
 		 * The PENDING bit acts as a lock, and we own it, so we can clear it
 		 * without atomic ops.
 		 */
-		flags = atomic_fetch_andnot(IRQ_WORK_PENDING, &work->flags);
+		flags = atomic_read(&work->flags);
+		flags &= ~IRQ_WORK_PENDING;
+		atomic_set(&work->flags, flags);
 
-		lockdep_irq_work_enter(work);
-		work->func(work);
-		lockdep_irq_work_exit(work);
 		/*
 		 * See irq_work_claim().
 		 */
-		flags &= ~IRQ_WORK_PENDING;
+		smp_mb();
+
+		lockdep_irq_work_enter(flags);
+		work->func(work);
+		lockdep_irq_work_exit(flags);
+
+		/*
+		 * Clear the BUSY bit, if set, and return to the free state if no-one
+		 * else claimed it meanwhile.
+		 */
 		(void)atomic_cmpxchg(&work->flags, flags, flags & ~IRQ_WORK_BUSY);
 	}
 }
