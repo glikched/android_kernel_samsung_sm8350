@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2012-2015, 2017-2019, The Linux Foundation.
+ * Copyright (c) 2012-2015, 2017-2019, 2021 The Linux Foundation.
  * All rights reserved.
  */
 
@@ -73,7 +73,7 @@ int qpnp_pon_modem_pwr_off(enum pon_power_off_type type);
 
 #else
 
-static int qpnp_pon_system_pwr_off(enum pon_power_off_type type)
+static inline int qpnp_pon_system_pwr_off(enum pon_power_off_type type)
 {
 	return -ENODEV;
 }
@@ -89,7 +89,7 @@ static inline int qpnp_pon_trigger_config(enum pon_trigger_source pon_src,
 	return -ENODEV;
 }
 
-int qpnp_pon_wd_config(bool enable)
+static inline int qpnp_pon_wd_config(bool enable)
 {
 	return -ENODEV;
 }
