@@ -1896,8 +1896,9 @@ static int __init thermal_init(void)
 	ss_thermal_log_init();
 #endif	
 #endif
-
+#ifdef CONFIG_DEBUG_FS
 	thermal_debug_init();
+#endif
 #if IS_ENABLED(CONFIG_SEC_PM)
 	INIT_DELAYED_WORK(&tz_print_work, tz_print);
 	if (tz_polling_enable)
@@ -1932,7 +1933,9 @@ static void thermal_exit(void)
 	destroy_workqueue(thermal_passive_wq);
 	genetlink_exit();
 	class_unregister(&thermal_class);
+#ifdef CONFIG_DEBUG_FS
 	thermal_debug_exit();
+#endif
 	thermal_unregister_governors();
 	ida_destroy(&thermal_tz_ida);
 	ida_destroy(&thermal_cdev_ida);
