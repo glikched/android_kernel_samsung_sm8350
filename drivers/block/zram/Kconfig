@@ -54,4 +54,4 @@ config ZRAM_LRU_WRITEBACK_LIMIT
 
 config ZRAM_DEFAULT_COMP_ALGORITHM
 	string "Default ZRAM compression algorithm"
-	default "zstd"
+	default "lz4"
