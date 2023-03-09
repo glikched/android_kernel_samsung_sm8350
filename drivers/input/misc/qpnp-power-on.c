@@ -1051,7 +1051,7 @@ again:
 	}
 
 	if (pon->log_kpd_event && (cfg->pon_type == PON_KPDPWR))
-		pr_info_ratelimited("PMIC input: KPDPWR status=0x%02x, KPDPWR_ON=%d\n",
+		pr_info_ratelimited("PMIC input: KPDPWR status=0x%02x, KPDPWR_ON=%lu\n",
 			pon_rt_sts, (pon_rt_sts & QPNP_PON_KPDPWR_ON));
 
 	if (!(cfg->old_state && !!key_status)) {
@@ -1547,7 +1547,7 @@ static int qpnp_pon_config_kpdpwr_init(struct qpnp_pon *pon,
 		if (rc < 0)
 			pr_err("failed to read QPNP_PON_RT_STS rc=%d\n", rc);
 
-		pr_info("KPDPWR status at init=0x%02x, KPDPWR_ON=%d\n",
+		pr_info("KPDPWR status at init=0x%02x, KPDPWR_ON=%lu\n",
 			pon_rt_sts, (pon_rt_sts & QPNP_PON_KPDPWR_ON));
 	}
 	kpdwwr_bit = (is_pon_gen3(pon) ? QPNP_PON_GEN3_KPDPWR_N_SET : QPNP_PON_KPDPWR_N_SET);
