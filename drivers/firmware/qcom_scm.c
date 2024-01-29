@@ -204,6 +204,8 @@ void qcom_scm_set_download_mode(enum qcom_download_mode mode,
 
 	if (ret)
 		dev_err(dev, "failed to set download mode: %d\n", ret);
+	else
+		dev_err(dev, "set download mode: 0x%02x\n", mode);
 }
 EXPORT_SYMBOL(qcom_scm_set_download_mode);
 

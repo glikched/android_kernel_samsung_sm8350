@@ -27,4 +27,9 @@ static inline struct msm_rpmh_master_stats *msm_rpmh_get_apss_data(void)
 
 #endif
 
+#ifdef CONFIG_DSP_SLEEP_RECOVERY
+extern void subsystem_update_sleep_time(char *annotation,
+	char *rpmh_master_name, uint64_t accumulated_duration);
+extern void subsystem_monitor_sleep_issue(void);
+#endif
 #endif /* __QCOM_RPM_STATS_LOG_H__ */

@@ -223,6 +223,18 @@ bool cfg80211_is_element_inherited(const struct element *elem,
 }
 EXPORT_SYMBOL(cfg80211_is_element_inherited);
 
+static size_t oui_header_len(uint8_t *ie, size_t len)
+{
+	if (len < 3)
+		return 0;
+	/* Cisco Vendor Specific IEs doesn't have subtype in
+	 * their VSIE header, therefore skip subtype
+	 */
+	if (ie[0] == 0x00 && ie[1] == 0x40 && ie[2] == 0x96)
+		return 4;
+	return 5;
+}
+
 static size_t cfg80211_gen_new_ie(const u8 *ie, size_t ielen,
 				  const u8 *subelement, size_t subie_len,
 				  u8 *new_ie, gfp_t gfp)
@@ -231,6 +243,7 @@ static size_t cfg80211_gen_new_ie(const u8 *ie, size_t ielen,
 	const u8 *tmp_old, *tmp_new;
 	const struct element *non_inherit_elem;
 	u8 *sub_copy;
+	size_t hdr_len;
 
 	/* copy subelement as we need to change its content to
 	 * mark an ie after it is processed.
@@ -291,8 +304,10 @@ static size_t cfg80211_gen_new_ie(const u8 *ie, size_t ielen,
 			 * determine if they are the same ie.
 			 */
 			if (tmp_old[0] == WLAN_EID_VENDOR_SPECIFIC) {
-				if (tmp_old[1] >= 5 && tmp[1] >= 5 &&
-				    !memcmp(tmp_old + 2, tmp + 2, 5)) {
+				hdr_len = oui_header_len(tmp + 2, tmp[1]);
+
+				if (hdr_len && tmp_old[1] >= hdr_len && tmp[1] >= hdr_len &&
+				    !memcmp(tmp_old + 2, tmp + 2, hdr_len)) {
 					/* same vendor ie, copy from
 					 * subelement
 					 */

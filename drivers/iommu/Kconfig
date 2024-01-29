@@ -694,7 +694,7 @@ config IOMMU_TESTS
 endif # IOMMU_DEBUG
 
 config QCOM_IOMMU_TLBI_QUIRKS
-	bool "QCOM IOMMU Quirks for TLB invalidation"
+	bool "Qualcomm IOMMU Quirks for TLB invalidation"
 	depends on ARM_SMMU
 	depends on QGKI
 	help

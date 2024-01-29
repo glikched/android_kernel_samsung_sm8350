@@ -909,7 +909,7 @@ int ipa3_qmi_add_offload_request_send(
 		(req->filter_spec_ex2_list_len >=
 		(QMI_IPA_MAX_FILTERS_V01 -
 			ipa3_qmi_ctx->num_ipa_offload_connection))) {
-		IPAWANDBG(
+		IPAWANERR_RL(
 		"cur(%d), req(%d), exceed limit (%d)\n",
 			ipa3_qmi_ctx->num_ipa_offload_connection,
 			req->filter_spec_ex2_list_len,
@@ -1522,6 +1522,7 @@ static void ipa3_q6_clnt_svc_arrive(struct work_struct *work)
 		/* Cleanup when ipa3_wwan_remove is called */
 		mutex_lock(&ipa3_qmi_lock);
 		if (ipa_q6_clnt != NULL) {
+			mutex_lock(&ipa3_qmi_lock);
 			qmi_handle_release(ipa_q6_clnt);
 			vfree(ipa_q6_clnt);
 			ipa_q6_clnt = NULL;

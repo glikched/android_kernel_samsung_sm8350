@@ -1,5 +1,75 @@
 # SPDX-License-Identifier: GPL-2.0-only
 
+#sensor header path for adaptive mipi
+ifeq ($(CONFIG_SEC_M1Q_PROJECT), y)
+SRC_WIDE_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/adaptive_mipi/cam_sensor_adaptive_mipi_imx555.h
+SRC_UW_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/adaptive_mipi/cam_sensor_adaptive_mipi_imx563.h
+SRC_TELE_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/adaptive_mipi/cam_sensor_adaptive_mipi_s5kgw2.h
+SRC_FRONT_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/adaptive_mipi/cam_sensor_adaptive_mipi_imx374.h
+else ifeq ($(CONFIG_SEC_N2Q_PROJECT), y)
+SRC_WIDE_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/adaptive_mipi/cam_sensor_adaptive_mipi_imx555.h
+SRC_UW_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/adaptive_mipi/cam_sensor_adaptive_mipi_imx563.h
+SRC_TELE_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/adaptive_mipi/cam_sensor_adaptive_mipi_s5kgw2.h
+SRC_FRONT_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/adaptive_mipi/cam_sensor_adaptive_mipi_imx374.h
+else ifeq ($(CONFIG_SEC_O3Q_PROJECT), y)
+SRC_WIDE_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/adaptive_mipi/cam_sensor_adaptive_mipi_s5khm3.h
+SRC_UW_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/adaptive_mipi/cam_sensor_adaptive_mipi_imx563.h
+SRC_TELE_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/adaptive_mipi/cam_sensor_adaptive_mipi_s5k3j1.h
+SRC_FRONT_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/adaptive_mipi/cam_sensor_adaptive_mipi_s5kgh1.h
+endif
+
+ifeq ($(CONFIG_SEC_O1Q_PROJECT), y)
+SRC_WIDE_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/adaptive_mipi/cam_sensor_adaptive_mipi_imx555.h
+SRC_UW_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/adaptive_mipi/cam_sensor_adaptive_mipi_imx563.h
+SRC_TELE_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/adaptive_mipi/cam_sensor_adaptive_mipi_s5kgw2.h
+SRC_FRONT_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/adaptive_mipi/cam_sensor_adaptive_mipi_imx374.h
+else ifeq ($(CONFIG_SEC_T2Q_PROJECT), y)
+SRC_WIDE_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/adaptive_mipi/cam_sensor_adaptive_mipi_imx555.h
+SRC_UW_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/adaptive_mipi/cam_sensor_adaptive_mipi_imx563.h
+SRC_TELE_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/adaptive_mipi/cam_sensor_adaptive_mipi_s5kgw2.h
+SRC_FRONT_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/adaptive_mipi/cam_sensor_adaptive_mipi_imx374.h
+else ifeq ($(CONFIG_SEC_P3Q_PROJECT), y)
+SRC_WIDE_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/adaptive_mipi/cam_sensor_adaptive_mipi_s5khm3.h
+SRC_UW_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/adaptive_mipi/cam_sensor_adaptive_mipi_imx563_p3.h
+SRC_TELE_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/adaptive_mipi/cam_sensor_adaptive_mipi_s5k3j1.h
+SRC_FRONT_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/adaptive_mipi/cam_sensor_adaptive_mipi_s5kgh1.h
+else ifeq ($(CONFIG_SEC_R9Q_PROJECT), y)
+SRC_WIDE_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/adaptive_mipi/cam_sensor_adaptive_mipi_imx555_r9.h
+SRC_UW_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/adaptive_mipi/cam_sensor_adaptive_mipi_imx258.h
+else ifeq ($(CONFIG_SEC_B2Q_PROJECT), y)
+SRC_WIDE_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/adaptive_mipi/cam_sensor_adaptive_mipi_imx563_b2.h
+SRC_UW_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/adaptive_mipi/cam_sensor_adaptive_mipi_imx258_b2.h
+SRC_FRONT_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/adaptive_mipi/cam_sensor_adaptive_mipi_imx374.h
+else ifeq ($(CONFIG_SEC_Q2Q_PROJECT), y)
+SRC_WIDE_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/adaptive_mipi/cam_sensor_adaptive_mipi_imx555.h
+SRC_UW_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/adaptive_mipi/cam_sensor_adaptive_mipi_imx258.h
+SRC_TELE_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/adaptive_mipi/cam_sensor_adaptive_mipi_hi1337.h
+SRC_FRONT_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/adaptive_mipi/cam_sensor_adaptive_mipi_imx471.h
+SRC_FRONT_TOP_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/adaptive_mipi/cam_sensor_adaptive_mipi_imx374_q2.h
+else ifeq ($(CONFIG_SEC_V2Q_PROJECT), y)
+SRC_WIDE_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/adaptive_mipi/cam_sensor_adaptive_mipi_imx555.h
+SRC_UW_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/adaptive_mipi/cam_sensor_adaptive_mipi_imx258.h
+SRC_TELE_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/adaptive_mipi/cam_sensor_adaptive_mipi_hi1337.h
+SRC_FRONT_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/adaptive_mipi/cam_sensor_adaptive_mipi_imx471.h
+SRC_FRONT_TOP_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/adaptive_mipi/cam_sensor_adaptive_mipi_imx374_q2.h
+else ifeq ($(CONFIG_SEC_M44X_PROJECT), y)
+SRC_WIDE_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/adaptive_mipi/cam_sensor_adaptive_mipi_s5kjn1.h
+SRC_FRONT_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/adaptive_mipi/cam_sensor_adaptive_mipi_hi1336.h
+endif
+
+DST_WIDE_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/cam_sensor_adaptive_mipi_wide.h
+DST_UW_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/cam_sensor_adaptive_mipi_uw.h
+DST_TELE_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/cam_sensor_adaptive_mipi_tele.h
+DST_FRONT_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/cam_sensor_adaptive_mipi_front.h
+DST_FRONT_TOP_FILES = $(srctree)/techpack/camera/drivers/cam_sensor_module/cam_sensor/cam_sensor_adaptive_mipi_front_top.h
+
+#Copy sensor header for adaptive mipi
+$(info camera_adaptive_mipi="$(shell cp -f $(SRC_WIDE_FILES) $(DST_WIDE_FILES))")
+$(info camera_adaptive_mipi="$(shell cp -f $(SRC_UW_FILES) $(DST_UW_FILES))")
+$(info camera_adaptive_mipi="$(shell cp -f $(SRC_TELE_FILES) $(DST_TELE_FILES))")
+$(info camera_adaptive_mipi="$(shell cp -f $(SRC_FRONT_FILES) $(DST_FRONT_FILES))")
+$(info camera_adaptive_mipi="$(shell cp -f $(SRC_FRONT_TOP_FILES) $(DST_FRONT_TOP_FILES))")
+
 cameratree := $(srctree)/techpack/camera/drivers
 
 cam_include_dirs := $(shell dirname `find $(cameratree) -name '*.h'` | uniq)
@@ -26,6 +96,7 @@ camera-y := \
 	cam_utils/cam_debug_util.o \
 	cam_utils/cam_trace.o \
 	cam_utils/cam_common_util.o \
+	cam_utils/cam_notifier.o \
 	cam_utils/cam_compat.o \
 	cam_core/cam_context.o \
 	cam_core/cam_context_utils.o \
@@ -170,7 +241,8 @@ camera-$(CONFIG_SPECTRA_SENSOR) += \
 	cam_sensor_module/cam_sensor_io/cam_sensor_qup_i2c.o \
 	cam_sensor_module/cam_sensor_io/cam_sensor_spi.o \
 	cam_sensor_module/cam_sensor_utils/cam_sensor_util.o \
-	cam_sensor_module/cam_res_mgr/cam_res_mgr.o
+	cam_sensor_module/cam_res_mgr/cam_res_mgr.o \
+	cam_sensor_module/cam_sensor/cam_sensor_mipi.o
 
 camera-$(CONFIG_LEDS_QPNP_FLASH_V2) += \
 	cam_sensor_module/cam_flash/cam_flash_dev.o \
@@ -192,6 +264,15 @@ camera-$(CONFIG_SPECTRA_CUSTOM) += \
 	cam_cust/cam_custom_hw_mgr/cam_custom_hw_mgr.o \
 	cam_cust/cam_custom_dev.o \
 	cam_cust/cam_custom_context.o
+
+camera-$(CONFIG_SAMSUNG_SBI) += \
+	cam_sbi/sbi_hw_mgr/sbi_hw/cam_sbi_hw_core.o \
+	cam_sbi/sbi_hw_mgr/sbi_hw/cam_sbi_hw_dev.o \
+	cam_sbi/sbi_hw_mgr/sbi_hw/cam_sbi_hw_soc.o \
+	cam_sbi/sbi_hw_mgr/cam_sbi_csid/cam_custom_csid_dev.o \
+	cam_sbi/sbi_hw_mgr/cam_sbi_hw_mgr.o \
+	cam_sbi/cam_sbi_dev.o \
+	cam_sbi/cam_sbi_context.o
 
 camera-$(CONFIG_SPECTRA_OPE) += \
 	cam_ope/cam_ope_subdev.o \
@@ -219,6 +300,16 @@ camera-$(CONFIG_SPECTRA_TFE) += \
 	cam_isp/isp_hw_mgr/isp_hw/tfe_csid_hw/cam_tfe_csid530.o \
 	cam_isp/isp_hw_mgr/cam_tfe_hw_mgr.o
 
+ifneq (,$(filter $(CONFIG_CAMERA_FRAME_CNT_DBG),y m))
+camera-y += cam_sensor_module/cam_sensor/cam_sensor_thread.o
+endif
+
+ifneq (,$(filter $(CONFIG_SAMSUNG_OIS_MCU_STM32),y m))
+camera-y += cam_sensor_module/cam_ois/cam_ois_mcu_stm32g.o \
+	cam_sensor_module/cam_ois/cam_ois_thread.o
+endif
+
+camera-$(CONFIG_SPECTRA_CAMERA) += cam_sensor_module/cam_sensor_utils/cam_sysfs_init.o
 
 camera-y += camera_main.o
 

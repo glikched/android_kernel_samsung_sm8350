@@ -3269,6 +3269,8 @@ end:
 		return;
 	}
 
+	SDE_EVT32(ctx->hw.blk_off + REG_DMA_VIG_SWI_DIFF, offset + 0x4, op_mode,
+			offset + 0x40, cache[0], cache[1], cache[2]);
 	REG_DMA_SETUP_KICKOFF(kick_off, hw_cfg.ctl,
 			sspp_buf[idx][QSEED][ctx->idx], REG_DMA_WRITE,
 			DMA_CTL_QUEUE0, WRITE_IMMEDIATE, QSEED);

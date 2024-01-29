@@ -352,7 +352,7 @@ void sde_hw_setup_scaler3(struct sde_hw_blk_reg_map *c,
 		u32 scaler_offset, const struct sde_format *format)
 {
 	u32 op_mode = 0;
-	u32 phase_init, preload, src_y_rgb, src_uv, dst;
+	u32 phase_init, preload, src_y_rgb = 0, src_uv = 0, dst = 0;
 	scaler_lut_type setup_lut = NULL;
 
 	if (!scaler3_cfg->enable)
@@ -445,6 +445,10 @@ end:
 	}
 
 	SDE_REG_WRITE(c, QSEED3_OP_MODE + scaler_offset, op_mode);
+	SDE_EVT32(scaler3_cfg->enable, c->blk_off,
+			QSEED3_OP_MODE + scaler_offset, op_mode,
+			QSEED3_SRC_SIZE_Y_RGB_A + scaler_offset, src_y_rgb,
+			src_uv, dst);
 
 }
 

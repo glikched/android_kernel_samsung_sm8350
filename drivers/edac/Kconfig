@@ -525,7 +525,8 @@ config EDAC_KRYO_ARM64
 	  health, you should probably say 'Y' here.
 
 config EDAC_KRYO_ARM64_PANIC_ON_CE
-	depends on EDAC_KRYO_ARM64
+	depends on EDAC_KRYO_ARM64 && SEC_FACTORY
+	default y if SEC_FACTORY
 	select EDAC_PANIC_ON_CE
 	bool "Panic on correctable errors - Kryo"
 	help
@@ -560,7 +561,8 @@ config EDAC_QCOM
 	  health, you should probably say 'Y' here.
 
 config EDAC_QCOM_LLCC_PANIC_ON_CE
-	depends on EDAC_QCOM
+	depends on EDAC_QCOM && SEC_FACTORY
+	default y if SEC_FACTORY
 	select EDAC_PANIC_ON_CE
 	bool "panic on correctable errors - qcom llcc"
 	help

@@ -561,7 +561,7 @@ EXPORT_SYMBOL(mipi_dsi_set_maximum_return_packet_size);
  * on failure.
  */
 ssize_t mipi_dsi_generic_write(struct mipi_dsi_device *dsi, const void *payload,
-			       size_t size)
+				   size_t size)
 {
 	struct mipi_dsi_msg msg = {
 		.channel = dsi->channel,
@@ -606,7 +606,7 @@ EXPORT_SYMBOL(mipi_dsi_generic_write);
  * failure.
  */
 ssize_t mipi_dsi_generic_read(struct mipi_dsi_device *dsi, const void *params,
-			      size_t num_params, void *data, size_t size)
+				  size_t num_params, void *data, size_t size)
 {
 	struct mipi_dsi_msg msg = {
 		.channel = dsi->channel,

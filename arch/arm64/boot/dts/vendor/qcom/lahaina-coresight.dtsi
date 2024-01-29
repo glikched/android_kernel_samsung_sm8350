@@ -151,7 +151,7 @@
 		#size-cells = <1>;
 		ranges;
 
-		arm,buffer-size = <0x400000>;
+		arm,buffer-size = <0xC000000>;
 		arm,scatter-gather;
 
 		dma-coherent;

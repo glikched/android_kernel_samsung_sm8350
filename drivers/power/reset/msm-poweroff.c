@@ -46,7 +46,10 @@
 #define KASLR_OFFSET_BIT_MASK	0x00000000FFFFFFFF
 
 static int restart_mode;
-static void *restart_reason, *dload_type_addr;
+
+static void __iomem *restart_reason;
+
+static void __iomem *dload_type_addr;
 /* Download mode master kill-switch */
 static void __iomem *msm_ps_hold;
 static phys_addr_t tcsr_boot_misc_detect;
@@ -160,6 +163,7 @@ static bool get_dload_mode(void)
 	return dload_mode_enabled;
 }
 
+#if 0	
 static void enable_emergency_dload_mode(void)
 {
 	if (emergency_dload_mode_addr) {
@@ -182,6 +186,7 @@ static void enable_emergency_dload_mode(void)
 
 	qcom_scm_set_download_mode(SCM_EDLOAD_MODE, tcsr_boot_misc_detect ?: 0);
 }
+#endif 	
 
 static int dload_set(const char *val, const struct kernel_param *kp)
 {
@@ -435,6 +440,10 @@ static void msm_restart_prepare(const char *cmd)
 		if (!strncmp(cmd, "bootloader", 10)) {
 			reason = PON_RESTART_REASON_BOOTLOADER;
 			__raw_writel(0x77665500, restart_reason);
+		} else if (!strncmp(cmd, "recovery-update", 15)) {
+			qpnp_pon_set_restart_reason(
+				PON_RESTART_REASON_RECOVERY_UPDATE);
+			__raw_writel(0x776655cc, restart_reason);
 		} else if (!strncmp(cmd, "recovery", 8)) {
 			reason = PON_RESTART_REASON_RECOVERY;
 			__raw_writel(0x77665502, restart_reason);
@@ -458,8 +467,10 @@ static void msm_restart_prepare(const char *cmd)
 			if (!ret)
 				__raw_writel(0x6f656d00 | (code & 0xff),
 					     restart_reason);
+#if 0						 
 		} else if (!strncmp(cmd, "edl", 3)) {
 			enable_emergency_dload_mode();
+#endif			
 		} else {
 			__raw_writel(0x77665501, restart_reason);
 		}

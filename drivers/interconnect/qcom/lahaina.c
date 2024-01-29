@@ -621,6 +621,11 @@ static struct qcom_icc_qosbox qnm_mnoc_hf_qos = {
 	.config = &(struct qos_config) {
 		.prio = 0,
 		.urg_fwd = 1,
+#if defined(CONFIG_SAMSUNG_SBI)
+		.shaping_en = false,
+		.shaping_low = 0x0,
+		.shaping_high = 0x0,
+#endif
 	},
 };
 
@@ -642,6 +647,11 @@ static struct qcom_icc_qosbox qnm_mnoc_sf_qos = {
 	.config = &(struct qos_config) {
 		.prio = 0,
 		.urg_fwd = 1,
+#if defined(CONFIG_SAMSUNG_SBI)
+		.shaping_en = true,
+		.shaping_low = 0x1E1E1E1E,
+		.shaping_high = 0x1E1E1E1E,
+#endif
 	},
 };
 
@@ -749,6 +759,11 @@ static struct qcom_icc_qosbox qnm_camnoc_hf_qos = {
 	.config = &(struct qos_config) {
 		.prio = 0,
 		.urg_fwd = 1,
+#if defined(CONFIG_SAMSUNG_SBI)
+		.shaping_en = false,
+		.shaping_low = 0x0,
+		.shaping_high = 0x0,
+#endif
 	},
 };
 
@@ -770,6 +785,11 @@ static struct qcom_icc_qosbox qnm_camnoc_icp_qos = {
 	.config = &(struct qos_config) {
 		.prio = 5,
 		.urg_fwd = 1,
+#if defined(CONFIG_SAMSUNG_SBI)
+		.shaping_en = false,
+		.shaping_low = 0x0,
+		.shaping_high = 0x0,
+#endif
 	},
 };
 
@@ -791,6 +811,11 @@ static struct qcom_icc_qosbox qnm_camnoc_sf_qos = {
 	.config = &(struct qos_config) {
 		.prio = 0,
 		.urg_fwd = 1,
+#if defined(CONFIG_SAMSUNG_SBI)
+		.shaping_en = false,
+		.shaping_low = 0x0,
+		.shaping_high = 0x0,
+#endif
 	},
 };
 
@@ -822,6 +847,10 @@ static struct qcom_icc_qosbox qnm_video0_qos = {
 	.config = &(struct qos_config) {
 		.prio = 0,
 		.urg_fwd = 1,
+#if defined(CONFIG_SAMSUNG_SBI)
+		.shaping_low = 0x0D0D0D0D, // experiment 12/3 #1
+		.shaping_high = 0x0D0D0D0D,
+#endif
 	},
 };
 
@@ -843,6 +872,11 @@ static struct qcom_icc_qosbox qnm_video1_qos = {
 	.config = &(struct qos_config) {
 		.prio = 0,
 		.urg_fwd = 1,
+#if defined(CONFIG_SAMSUNG_SBI)
+		.shaping_en = true,
+		.shaping_low = 0x0D0D0D0D,
+		.shaping_high = 0x0D0D0D0D,
+#endif
 	},
 };
 
@@ -864,6 +898,11 @@ static struct qcom_icc_qosbox qnm_video_cvp_qos = {
 	.config = &(struct qos_config) {
 		.prio = 0,
 		.urg_fwd = 1,
+#if defined(CONFIG_SAMSUNG_SBI)
+		.shaping_en = true,
+		.shaping_low = 0x0E0E0E0E,
+		.shaping_high = 0x0E0E0E0E,
+#endif
 	},
 };
 
@@ -885,6 +924,11 @@ static struct qcom_icc_qosbox qxm_mdp0_qos = {
 	.config = &(struct qos_config) {
 		.prio = 0,
 		.urg_fwd = 1,
+#if defined(CONFIG_SAMSUNG_SBI)
+		.shaping_en = false,
+		.shaping_low = 0x0,
+		.shaping_high = 0x0,
+#endif
 	},
 };
 
@@ -906,6 +950,11 @@ static struct qcom_icc_qosbox qxm_mdp1_qos = {
 	.config = &(struct qos_config) {
 		.prio = 0,
 		.urg_fwd = 1,
+#if defined(CONFIG_SAMSUNG_SBI)
+		.shaping_en = false,
+		.shaping_low = 0x0,
+		.shaping_high = 0x0,
+#endif
 	},
 };
 
@@ -927,6 +976,11 @@ static struct qcom_icc_qosbox qxm_rot_qos = {
 	.config = &(struct qos_config) {
 		.prio = 0,
 		.urg_fwd = 1,
+#if defined(CONFIG_SAMSUNG_SBI)
+		.shaping_en = false,
+		.shaping_low = 0x0,
+		.shaping_high = 0x0,
+#endif
 	},
 };
 
@@ -2742,7 +2796,7 @@ static int qnoc_probe(struct platform_device *pdev)
 	qp->num_clks = devm_clk_bulk_get_all(qp->dev, &qp->clks);
 	if (qp->num_clks < 0)
 		return qp->num_clks;
-
+		
 	ret = clk_bulk_prepare_enable(qp->num_clks, qp->clks);
 	if (ret) {
 		dev_err(&pdev->dev, "failed to enable clocks\n");
@@ -2762,7 +2816,6 @@ static int qnoc_probe(struct platform_device *pdev)
 			ret = PTR_ERR(node);
 			goto err;
 		}
-
 		if (qnodes[i]->qosbox) {
 			qnodes[i]->noc_ops->set_qos(qnodes[i]);
 			qnodes[i]->qosbox->initialized = true;
@@ -2782,6 +2835,7 @@ static int qnoc_probe(struct platform_device *pdev)
 		data->nodes[i] = node;
 	}
 	data->num_nodes = num_nodes;
+	
 
 	clk_bulk_disable_unprepare(qp->num_clks, qp->clks);
 
@@ -2802,7 +2856,6 @@ err:
 		icc_node_del(node);
 		icc_node_destroy(node->id);
 	}
-
 	clk_bulk_disable_unprepare(qp->num_clks, qp->clks);
 	clk_bulk_put_all(qp->num_clks, qp->clks);
 

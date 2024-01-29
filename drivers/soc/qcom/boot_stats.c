@@ -24,6 +24,7 @@
 #define MSM_ARCH_TIMER_FREQ     19200000
 #define BOOTKPI_BUF_SIZE (2 * PAGE_SIZE)
 #define TIMER_KHZ 32768
+#include <linux/sec_debug.h>
 
 struct boot_stats {
 	uint32_t bootloader_start;
@@ -35,6 +36,13 @@ struct boot_stats {
 	uint32_t bootloader_load_kernel_end;
 #endif
 };
+
+#if IS_ENABLED(CONFIG_SEC_BOOTSTAT)
+uint32_t bs_linuxloader_start;
+uint32_t bs_linux_start;
+uint32_t bs_uefi_start;
+uint32_t bs_bootloader_load_kernel;
+#endif
 
 static void __iomem *mpm_counter_base;
 static uint32_t mpm_counter_freq;
@@ -347,6 +355,13 @@ err1:
 
 static void print_boot_stats(void)
 {
+#if IS_ENABLED(CONFIG_SEC_BOOTSTAT)
+	bs_linuxloader_start = readl_relaxed(&boot_stats->bootloader_start);
+	bs_linux_start = readl_relaxed(&boot_stats->bootloader_end);
+	bs_uefi_start = readl_relaxed(&boot_stats->bootloader_display);
+	bs_bootloader_load_kernel = readl_relaxed(
+			&boot_stats->bootloader_load_kernel);
+#endif
 	pr_info("KPI: Bootloader start count = %u\n",
 		readl_relaxed(&boot_stats->bootloader_start));
 	pr_info("KPI: Bootloader end count = %u\n",
@@ -360,6 +375,17 @@ static void print_boot_stats(void)
 	pr_info("KPI: Kernel MPM Clock frequency = %u\n",
 		mpm_counter_freq);
 }
+
+#if IS_ENABLED(CONFIG_SEC_BOOTSTAT)
+unsigned int __deprecated get_boot_stat_time(void)
+{
+	return readl_relaxed(mpm_counter_base);
+}
+unsigned int get_boot_stat_freq(void)
+{
+	return mpm_counter_freq;
+}
+#endif
 
 static int __init boot_stats_init(void)
 {
@@ -381,7 +407,9 @@ static int __init boot_stats_init(void)
 #endif
 	} else {
 		iounmap(boot_stats);
+#if !IS_ENABLED(CONFIG_SEC_BOOTSTAT)
 		iounmap(mpm_counter_base);
+#endif
 	}
 
 	return 0;

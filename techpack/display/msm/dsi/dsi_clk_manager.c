@@ -10,6 +10,7 @@
 #include <linux/pm_runtime.h>
 #include "dsi_clk.h"
 #include "dsi_defs.h"
+#include "sde_dbg.h"
 
 struct dsi_core_clks {
 	struct dsi_core_clk_info clks;
@@ -342,19 +343,24 @@ static int dsi_link_hs_clk_set_rate(struct dsi_link_hs_clk_info *link_hs_clks,
 	if (mngr->is_cont_splash_enabled)
 		return 0;
 
+	SDE_EVT32(l_clks->freq.byte_clk_rate, 0x1111);
+
 	rc = clk_set_rate(link_hs_clks->byte_clk,
 		l_clks->freq.byte_clk_rate);
 	if (rc) {
 		DSI_ERR("clk_set_rate failed for byte_clk rc = %d\n", rc);
 		goto error;
 	}
+	SDE_EVT32(l_clks->freq.pix_clk_rate, 0x2222);
 
 	rc = clk_set_rate(link_hs_clks->pixel_clk,
 		l_clks->freq.pix_clk_rate);
 	if (rc) {
 		DSI_ERR("clk_set_rate failed for pixel_clk rc = %d\n", rc);
+		SDE_DBG_DUMP("all", "dbg_bus", "vbif_dbg_bus", "panic");
 		goto error;
 	}
+	SDE_EVT32(link_hs_clks->byte_intf_clk, 0x3333);
 
 	/*
 	 * If byte_intf_clk is present, set rate for that too.
@@ -621,6 +627,10 @@ error:
 	return rc;
 }
 
+#if defined(CONFIG_DISPLAY_SAMSUNG)
+extern void tcon_prepare(void);
+#endif
+
 static int dsi_display_link_clk_enable(struct dsi_link_clks *clks,
 	enum dsi_lclk_type l_type, u32 ctrl_count, u32 master_ndx)
 {
@@ -645,6 +655,11 @@ static int dsi_display_link_clk_enable(struct dsi_link_clks *clks,
 		}
 	}
 
+#if defined(CONFIG_DISPLAY_SAMSUNG)
+	if ((l_type & DSI_LINK_LP_CLK) && (ctrl_count==1))
+		tcon_prepare();
+#endif
+
 	if (l_type & DSI_LINK_HS_CLK) {
 		rc = dsi_link_hs_clk_start(&m_clks->hs_clks,
 			DSI_LINK_CLK_START, master_ndx);
@@ -667,6 +682,9 @@ static int dsi_display_link_clk_enable(struct dsi_link_clks *clks,
 						rc);
 				goto error_disable_master;
 			}
+#if defined(CONFIG_DISPLAY_SAMSUNG)
+			tcon_prepare();
+#endif
 		}
 
 		if (l_type & DSI_LINK_HS_CLK) {
@@ -729,6 +747,10 @@ error:
 	return rc;
 }
 
+#if defined(CONFIG_DISPLAY_SAMSUNG)
+extern void force_sustain_lp11_for_sleep(void);
+#endif
+
 static int dsi_display_link_clk_disable(struct dsi_link_clks *clks,
 	enum dsi_lclk_type l_type, u32 ctrl_count, u32 master_ndx)
 {
@@ -752,6 +774,9 @@ static int dsi_display_link_clk_disable(struct dsi_link_clks *clks,
 			continue;
 
 		if (l_type & DSI_LINK_LP_CLK) {
+#if defined(CONFIG_DISPLAY_SAMSUNG)
+			force_sustain_lp11_for_sleep();
+#endif
 			rc = dsi_link_lp_clk_stop(&clk->lp_clks);
 			if (rc)
 				DSI_ERR("failed to turn off lp link clocks, rc=%d\n",
@@ -1144,6 +1169,7 @@ int dsi_clk_req_state(void *client, enum dsi_clk_type clk,
 	DSI_DEBUG("[%s]%s: CLK=%d, new_state=%d, core=%d, linkl=%d\n",
 	       mngr->name, c->name, clk, state, c->core_clk_state,
 	       c->link_clk_state);
+	SDE_EVT32(clk, state, c->core_refcount, c->core_clk_state, c->link_refcount, c->link_clk_state); // case 04627046
 
 	/*
 	 * Clock refcount handling as below:
@@ -1212,6 +1238,7 @@ int dsi_clk_req_state(void *client, enum dsi_clk_type clk,
 	DSI_DEBUG("[%s]%s: change=%d, Core (ref=%d, state=%d), Link (ref=%d, state=%d)\n",
 		 mngr->name, c->name, changed, c->core_refcount,
 		 c->core_clk_state, c->link_refcount, c->link_clk_state);
+	SDE_EVT32(changed, c->core_refcount, c->core_clk_state, c->link_refcount, c->link_clk_state); // case 04627046
 
 	if (changed) {
 		rc = dsi_recheck_clk_state(mngr);

@@ -64,8 +64,12 @@ int cam_soc_bus_client_update_request(void *client, unsigned int idx)
 end:
 	return rc;
 }
-
+#if defined(CONFIG_SAMSUNG_SBI_QOS_TUNE)
+int cam_soc_bus_client_update_bw(void *client, uint64_t ab, uint64_t ib,
+	uint64_t additional_ib)
+#else
 int cam_soc_bus_client_update_bw(void *client, uint64_t ab, uint64_t ib)
+#endif
 {
 	int idx = 0;
 	struct msm_bus_paths *path;
@@ -220,7 +224,11 @@ void cam_soc_bus_client_unregister(void **client)
 		(struct cam_soc_bus_client_data *) bus_client->client_data;
 
 	if (bus_client_data->dyn_vote)
+#if defined(CONFIG_SAMSUNG_SBI_QOS_TUNE)
+		cam_soc_bus_client_update_bw(bus_client, 0, 0, 0);
+#else
 		cam_soc_bus_client_update_bw(bus_client, 0, 0);
+#endif
 	else
 		cam_soc_bus_client_update_request(bus_client, 0);
 

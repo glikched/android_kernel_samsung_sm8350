@@ -1166,7 +1166,7 @@ int xhci_resume(struct xhci_hcd *xhci, bool hibernated)
 		 * for controller not ready bit to clear, just as in xHC init.
 		 */
 		retval = xhci_handshake(&xhci->op_regs->status,
-					STS_CNR, 0, 10 * 1000 * 1000);
+					STS_CNR, 0, 1000 * 1000);
 		if (retval) {
 			xhci_warn(xhci, "Controller not ready at resume %d\n",
 				  retval);
@@ -5497,16 +5497,21 @@ int xhci_stop_endpoint(struct usb_device *udev, struct usb_host_endpoint *ep)
 	int ret = 0;
 
 	ret = xhci_check_args(hcd, udev, ep, 1, true, __func__);
-	if (ret <= 0)
+	if (ret <= 0) {
+		xhci_err(xhci, "xhci_check_args err =%d\n", ret);
 		return ret;
+	}
 
 	cmd = xhci_alloc_command(xhci, true, GFP_NOIO);
-	if (!cmd)
+	if (!cmd) {
+		xhci_err(xhci, "xhci_alloc_command cmd =%d\n", cmd);
 		return -ENOMEM;
+	}
 
 	spin_lock_irqsave(&xhci->lock, flags);
 	virt_dev = xhci->devs[udev->slot_id];
 	if (!virt_dev) {
+		xhci_err(xhci, "virt_dev = 0\n");
 		ret = -ENODEV;
 		goto err;
 	}
@@ -5516,8 +5521,10 @@ int xhci_stop_endpoint(struct usb_device *udev, struct usb_host_endpoint *ep)
 			virt_dev->eps[ep_index].ring->dequeue) {
 		ret = xhci_queue_stop_endpoint(xhci, cmd, udev->slot_id,
 				ep_index, 0);
-		if (ret)
+		if (ret) {
+			xhci_err(xhci, "xhci_queue_stop_endpoint ret =%d\n", ret);
 			goto err;
+		}
 
 		xhci_ring_cmd_db(xhci);
 		spin_unlock_irqrestore(&xhci->lock, flags);

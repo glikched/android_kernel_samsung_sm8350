@@ -200,7 +200,15 @@ static int print_mem_entry(void *data, void *ptr)
 		inode_number = kgsl_get_dmabuf_inode_number(entry);
 	}
 
-	seq_printf(s, "%pK %pK %16llu %5d %10s %10s %16s %5d %10d %6d %6d %10lu",
+#if defined(CONFIG_DISPLAY_SAMSUNG) && !defined(CONFIG_SAMSUNG_PRODUCT_SHIP)
+	seq_printf(s, "%p %16llu %5d %9s %10s %16s %5d %6d %6d",
+			(uint64_t *)(uintptr_t) m->gpuaddr,
+			m->size, entry->id, flags,
+			memtype_str(usermem_type),
+			usage, (m->sgt ? m->sgt->nents : 0),
+			egl_surface_count, egl_image_count);
+#else
+	seq_printf(s, "%pK %pK %16llu %5d %9s %10s %16s %5d %16llu %6d %6d",
 			(uint64_t *)(uintptr_t) m->gpuaddr,
 			/*
 			 * Show zero for the useraddr - we can't reliably track
@@ -208,8 +216,9 @@ static int print_mem_entry(void *data, void *ptr)
 			 */
 			0, m->size, entry->id, flags,
 			memtype_str(usermem_type),
-			usage, (m->sgt ? m->sgt->nents : 0), map_count,
-			egl_surface_count, egl_image_count, inode_number);
+			usage, (m->sgt ? m->sgt->nents : 0), m->size,
+			egl_surface_count, egl_image_count);
+#endif
 
 	if (entry->metadata[0] != 0)
 		seq_printf(s, " %s", entry->metadata);

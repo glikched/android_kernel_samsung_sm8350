@@ -238,7 +238,6 @@ static struct cam_vfe_bus_ver2_reg_offset_ubwc_client ubwc_regs_client_3 = {
 	.meta_stride      = 0x00002540,
 	.mode_cfg_0       = 0x00002544,
 	.bw_limit         = 0x000025A0,
-	.ubwc_comp_en_bit = BIT(1),
 };
 
 static struct cam_vfe_bus_ver2_reg_offset_ubwc_client ubwc_regs_client_4 = {
@@ -250,7 +249,6 @@ static struct cam_vfe_bus_ver2_reg_offset_ubwc_client ubwc_regs_client_4 = {
 	.meta_stride      = 0x00002640,
 	.mode_cfg_0       = 0x00002644,
 	.bw_limit         = 0x000026A0,
-	.ubwc_comp_en_bit = BIT(1),
 };
 
 static struct cam_vfe_bus_ver2_hw_info vfe170_bus_hw_info = {
@@ -863,7 +861,6 @@ static struct cam_vfe_bus_ver2_hw_info vfe170_bus_hw_info = {
 	},
 	.top_irq_shift = 9,
 	.support_consumed_addr = false,
-	.max_out_res = CAM_ISP_IFE_OUT_RES_BASE + 19,
 };
 
 static struct cam_vfe_hw_info cam_vfe170_hw_info = {

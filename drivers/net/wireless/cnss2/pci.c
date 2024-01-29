@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-only
-/* Copyright (c) 2016-2021, The Linux Foundation. All rights reserved.
- * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
- */
+/* Copyright (c) 2016-2021, The Linux Foundation. All rights reserved. */
 
 #include <linux/cma.h>
 #include <linux/firmware.h>
@@ -141,13 +139,6 @@ static struct cnss_pci_reg qdss_csr[] = {
 	{ "QDSSCSR_PRESERVEETF", QDSS_APB_DEC_CSR_PRESERVEETF_OFFSET },
 	{ "QDSSCSR_PRESERVEETR0", QDSS_APB_DEC_CSR_PRESERVEETR0_OFFSET },
 	{ "QDSSCSR_PRESERVEETR1", QDSS_APB_DEC_CSR_PRESERVEETR1_OFFSET },
-	{ NULL },
-};
-
-static struct cnss_pci_reg pci_scratch[] = {
-	{ "PCIE_SCRATCH_0", PCIE_SCRATCH_0_SOC_PCIE_REG },
-	{ "PCIE_SCRATCH_1", PCIE_SCRATCH_1_SOC_PCIE_REG },
-	{ "PCIE_SCRATCH_2", PCIE_SCRATCH_2_SOC_PCIE_REG },
 	{ NULL },
 };
 
@@ -620,12 +611,6 @@ static int _cnss_pci_get_reg_dump(struct cnss_pci_data *pci_priv,
 				  u8 *buf, u32 len)
 {
 	return msm_pcie_reg_dump(pci_priv->pci_dev, buf, len);
-}
-
-int cnss_pci_dsp_link_control(struct cnss_pci_data *pci_priv,
-			      bool link_enable)
-{
-	return msm_pcie_dsp_link_control(pci_priv->pci_dev, link_enable);
 }
 #else
 static int _cnss_pci_enumerate(struct cnss_plat_data *plat_priv, u32 rc_num)
@@ -1104,36 +1089,6 @@ retry:
 	return ret;
 }
 
-static void cnss_pci_soc_scratch_reg_dump(struct cnss_pci_data *pci_priv)
-{
-	u32 reg_offset, val;
-	int i;
-
-	switch (pci_priv->device_id) {
-	case QCA6390_DEVICE_ID:
-	case QCA6490_DEVICE_ID:
-		break;
-	default:
-		return;
-	}
-
-	if (in_interrupt() || irqs_disabled())
-		return;
-
-	if (cnss_pci_check_link_status(pci_priv))
-		return;
-
-	cnss_pr_dbg("Start to dump SOC Scratch registers\n");
-
-	for (i = 0; pci_scratch[i].name; i++) {
-		reg_offset = pci_scratch[i].offset;
-		if (cnss_pci_reg_read(pci_priv, reg_offset, &val))
-			return;
-		cnss_pr_dbg("PCIE_SOC_REG_%s = 0x%x\n",
-			    pci_scratch[i].name, val);
-	}
-}
-
 int cnss_suspend_pci_link(struct cnss_pci_data *pci_priv)
 {
 	int ret = 0;
@@ -1254,7 +1209,6 @@ int cnss_pci_recover_link_down(struct cnss_pci_data *pci_priv)
 		  jiffies + msecs_to_jiffies(DEV_RDDM_TIMEOUT));
 
 	mhi_debug_reg_dump(pci_priv->mhi_ctrl);
-	cnss_pci_soc_scratch_reg_dump(pci_priv);
 
 	return 0;
 }
@@ -1508,9 +1462,9 @@ static void cnss_pci_dump_qca6390_sram_mem(struct cnss_pci_data *pci_priv)
 	sbl_log_size = (sbl_log_size > QCA6390_DEBUG_SBL_LOG_SRAM_MAX_SIZE ?
 			QCA6390_DEBUG_SBL_LOG_SRAM_MAX_SIZE : sbl_log_size);
 
-	if (sbl_log_start < SRAM_START ||
-	    sbl_log_start > SRAM_END ||
-	    (sbl_log_start + sbl_log_size) > SRAM_END)
+	if (sbl_log_start < QCA6390_V2_SBL_DATA_START ||
+	    sbl_log_start > QCA6390_V2_SBL_DATA_END ||
+	    (sbl_log_start + sbl_log_size) > QCA6390_V2_SBL_DATA_END)
 		goto out;
 
 	cnss_pr_dbg("Dumping SBL log data\n");
@@ -1578,11 +1532,17 @@ static void cnss_pci_dump_bl_sram_mem(struct cnss_pci_data *pci_priv)
 
 	sbl_log_size = (sbl_log_size > QCA6490_DEBUG_SBL_LOG_SRAM_MAX_SIZE ?
 			QCA6490_DEBUG_SBL_LOG_SRAM_MAX_SIZE : sbl_log_size);
-
-	if (sbl_log_start < SRAM_START ||
-	    sbl_log_start > SRAM_END ||
-	    (sbl_log_start + sbl_log_size) > SRAM_END)
-		goto out;
+	if (plat_priv->device_version.major_version == FW_V2_NUMBER) {
+		if (sbl_log_start < QCA6490_V2_SBL_DATA_START ||
+		    sbl_log_start > QCA6490_V2_SBL_DATA_END ||
+		    (sbl_log_start + sbl_log_size) > QCA6490_V2_SBL_DATA_END)
+			goto out;
+	} else {
+		if (sbl_log_start < QCA6490_V1_SBL_DATA_START ||
+		    sbl_log_start > QCA6490_V1_SBL_DATA_END ||
+		    (sbl_log_start + sbl_log_size) > QCA6490_V1_SBL_DATA_END)
+			goto out;
+	}
 
 	cnss_pr_dbg("Dumping SBL log data\n");
 	for (i = 0; i < sbl_log_size; i += sizeof(val)) {
@@ -1615,7 +1575,6 @@ static int cnss_pci_handle_mhi_poweron_timeout(struct cnss_pci_data *pci_priv)
 	} else {
 		cnss_pr_dbg("RDDM cookie is not set\n");
 		mhi_debug_reg_dump(pci_priv->mhi_ctrl);
-		cnss_pci_soc_scratch_reg_dump(pci_priv);
 		/* Dump PBL/SBL error log if RDDM cookie is not set */
 		cnss_pci_dump_bl_sram_mem(pci_priv);
 		return -ETIMEDOUT;
@@ -1933,7 +1892,7 @@ int cnss_pci_start_mhi(struct cnss_pci_data *pci_priv)
 		  jiffies + msecs_to_jiffies(BOOT_DEBUG_TIMEOUT_MS));
 
 	ret = cnss_pci_set_mhi_state(pci_priv, CNSS_MHI_POWER_ON);
-	del_timer_sync(&pci_priv->boot_debug_timer);
+	del_timer(&pci_priv->boot_debug_timer);
 	if (ret == 0)
 		cnss_wlan_adsp_pc_enable(pci_priv, false);
 
@@ -2572,6 +2531,7 @@ static int cnss_qca6290_powerup(struct cnss_pci_data *pci_priv)
 	struct cnss_plat_data *plat_priv = pci_priv->plat_priv;
 	unsigned int timeout;
 	int retry = 0, sw_ctrl_gpio = plat_priv->pinctrl_info.sw_ctrl_gpio;
+	int bt_en_gpio = plat_priv->pinctrl_info.bt_en_gpio;
 
 	if (plat_priv->ramdump_info_v2.dump_data_valid) {
 		cnss_pci_clear_dump_info(pci_priv);
@@ -2606,6 +2566,11 @@ retry:
 			cnss_pr_dbg("Value of SW_CTRL GPIO: %d\n",
 				    cnss_gpio_get_value(plat_priv,
 							sw_ctrl_gpio));
+
+			/* Force toggle BT_EN GPIO low */
+			cnss_pr_err("Set bt_en_gpio(%u) low \n",bt_en_gpio);
+			gpio_set_value(bt_en_gpio, false);
+
 			msleep(POWER_ON_RETRY_DELAY_MS * retry);
 			goto retry;
 		}
@@ -3076,10 +3041,8 @@ static bool cnss_pci_is_drv_supported(struct cnss_pci_data *pci_priv)
 		    drv_supported ? "supported" : "not supported");
 	pci_priv->drv_supported = drv_supported;
 
-	if (drv_supported) {
+	if (drv_supported)
 		plat_priv->cap.cap_flag |= CNSS_HAS_DRV_SUPPORT;
-		cnss_set_feature_list(plat_priv, CNSS_DRV_SUPPORT_V01);
-	}
 
 	return drv_supported;
 }
@@ -4085,27 +4048,15 @@ int cnss_pci_alloc_fw_mem(struct cnss_pci_data *pci_priv)
 
 	for (i = 0; i < plat_priv->fw_mem_seg_len; i++) {
 		if (!fw_mem[i].va && fw_mem[i].size) {
-retry:
 			fw_mem[i].va =
 				dma_alloc_attrs(dev, fw_mem[i].size,
 						&fw_mem[i].pa, GFP_KERNEL,
 						fw_mem[i].attrs);
 
 			if (!fw_mem[i].va) {
-				if ((fw_mem[i].attrs &
-				    DMA_ATTR_FORCE_CONTIGUOUS)) {
-					fw_mem[i].attrs &=
-					    ~DMA_ATTR_FORCE_CONTIGUOUS;
-
-					cnss_pr_dbg("Fallback to non-contiguous memory for FW, Mem type: %u\n",
-						    fw_mem[i].type);
-					goto retry;
-				}
-
 				cnss_pr_err("Failed to allocate memory for FW, size: 0x%zx, type: %u\n",
 					    fw_mem[i].size, fw_mem[i].type);
-				CNSS_ASSERT(0);
-				return -ENOMEM;
+				BUG();
 			}
 		}
 	}
@@ -4937,7 +4888,6 @@ static void cnss_pci_dump_debug_reg(struct cnss_pci_data *pci_priv)
 	cnss_pr_dbg("Start to dump debug registers\n");
 
 	mhi_debug_reg_dump(pci_priv->mhi_ctrl);
-	cnss_pci_soc_scratch_reg_dump(pci_priv);
 	cnss_pci_dump_ce_reg(pci_priv, CNSS_CE_COMMON);
 	cnss_pci_dump_ce_reg(pci_priv, CNSS_CE_09);
 	cnss_pci_dump_ce_reg(pci_priv, CNSS_CE_10);
@@ -4964,7 +4914,6 @@ int cnss_pci_force_fw_assert_hdlr(struct cnss_pci_data *pci_priv)
 	if (!cnss_pci_check_link_status(pci_priv))
 		mhi_debug_reg_dump(pci_priv->mhi_ctrl);
 
-	cnss_pci_soc_scratch_reg_dump(pci_priv);
 	cnss_pci_dump_misc_reg(pci_priv);
 	cnss_pci_dump_shadow_reg(pci_priv);
 
@@ -5146,7 +5095,6 @@ void cnss_pci_collect_dump_info(struct cnss_pci_data *pci_priv, bool in_panic)
 	}
 
 	mhi_debug_reg_dump(pci_priv->mhi_ctrl);
-	cnss_pci_soc_scratch_reg_dump(pci_priv);
 	cnss_pci_dump_misc_reg(pci_priv);
 	cnss_pci_dump_shadow_reg(pci_priv);
 	cnss_pci_dump_qdss_reg(pci_priv);
@@ -5196,21 +5144,17 @@ void cnss_pci_collect_dump_info(struct cnss_pci_data *pci_priv, bool in_panic)
 
 	mhi_dump_sfr(pci_priv->mhi_ctrl);
 
+	cnss_pr_dbg("Collect remote heap dump segment\n");
+
 	for (i = 0, j = 0; i < plat_priv->fw_mem_seg_len; i++) {
 		if (fw_mem[i].type == CNSS_MEM_TYPE_DDR) {
-			if (fw_mem[i].attrs & DMA_ATTR_FORCE_CONTIGUOUS) {
-				cnss_pr_dbg("Collect remote heap dump segment\n");
-				cnss_pci_add_dump_seg(pci_priv, dump_seg,
-						      CNSS_FW_REMOTE_HEAP, j,
-						      fw_mem[i].va,
-						      fw_mem[i].pa,
-						      fw_mem[i].size);
-				dump_seg++;
-				dump_data->nentries++;
-				j++;
-			} else {
-				cnss_pr_dbg("Skip remote heap dumps as it is non-contiguous\n");
-			}
+			cnss_pci_add_dump_seg(pci_priv, dump_seg,
+					      CNSS_FW_REMOTE_HEAP, j,
+					      fw_mem[i].va, fw_mem[i].pa,
+					      fw_mem[i].size);
+			dump_seg++;
+			dump_data->nentries++;
+			j++;
 		}
 	}
 
@@ -5255,8 +5199,7 @@ void cnss_pci_clear_dump_info(struct cnss_pci_data *pci_priv)
 	}
 
 	for (i = 0, j = 0; i < plat_priv->fw_mem_seg_len; i++) {
-		if (fw_mem[i].type == CNSS_MEM_TYPE_DDR &&
-		    (fw_mem[i].attrs & DMA_ATTR_FORCE_CONTIGUOUS)) {
+		if (fw_mem[i].type == CNSS_MEM_TYPE_DDR) {
 			cnss_pci_remove_dump_seg(pci_priv, dump_seg,
 						 CNSS_FW_REMOTE_HEAP, j,
 						 fw_mem[i].va, fw_mem[i].pa,
@@ -5433,7 +5376,6 @@ static void cnss_dev_rddm_timeout_hdlr(struct timer_list *t)
 		cnss_pr_err("Unable to collect ramdumps due to abrupt reset\n");
 
 	mhi_debug_reg_dump(pci_priv->mhi_ctrl);
-	cnss_pci_soc_scratch_reg_dump(pci_priv);
 
 	cnss_schedule_recovery(&pci_priv->pci_dev->dev, CNSS_REASON_TIMEOUT);
 }
@@ -5461,7 +5403,6 @@ static void cnss_boot_debug_timeout_hdlr(struct timer_list *t)
 	cnss_pr_dbg("Dump MHI/PBL/SBL debug data every %ds during MHI power on\n",
 		    BOOT_DEBUG_TIMEOUT_MS / 1000);
 	mhi_debug_reg_dump(pci_priv->mhi_ctrl);
-	cnss_pci_soc_scratch_reg_dump(pci_priv);
 	cnss_pci_dump_bl_sram_mem(pci_priv);
 
 	mod_timer(&pci_priv->boot_debug_timer,
@@ -6188,32 +6129,18 @@ struct pci_driver cnss_pci_driver = {
 static int cnss_pci_enumerate(struct cnss_plat_data *plat_priv, u32 rc_num)
 {
 	int ret, retry = 0;
-	u32 link_speed;
 
-	/* For qca6490, read dts first to get default gen speed, if valid
-	 * setting existing, then use it; if not set, use gen2; if invalid
-	 * value, ignore it since can't set it for pcie switch platform
+	/* Always set initial target PCIe link speed to Gen2 for QCA6490 device
+	 * since there may be link issues if it boots up with Gen3 link speed.
+	 * Device is able to change it later at any time. It will be rejected
+	 * if requested speed is higher than the one specified in PCIe DT.
 	 */
 	if (plat_priv->device_id == QCA6490_DEVICE_ID) {
-		ret = of_property_read_u32(plat_priv->plat_dev->dev.of_node,
-					   "default_gen_speed",
-					   &link_speed);
-		if (ret) {
-			cnss_pr_dbg("no default_gen_speed, use gen2\n");
-			link_speed = PCI_EXP_LNKSTA_CLS_5_0GB;
-		}
-
-		if (link_speed >= PCI_EXP_LNKSTA_CLS_2_5GB &&
-		    link_speed <= PCI_EXP_LNKSTA_CLS_8_0GB) {
-			cnss_pr_dbg("Set pci link speed: %u\n", link_speed);
-			ret = cnss_pci_set_max_link_speed(plat_priv->bus_priv, rc_num,
-							  link_speed);
-			if (ret && ret != -EPROBE_DEFER)
-				cnss_pr_err("Failed to set max PCIe RC%x link speed to Gen2, err = %d\n",
-					    rc_num, ret);
-		} else {
-			cnss_pr_dbg("default_gen_speed: %u\n", link_speed);
-		}
+		ret = cnss_pci_set_max_link_speed(plat_priv->bus_priv, rc_num,
+						  PCI_EXP_LNKSTA_CLS_5_0GB);
+		if (ret && ret != -EPROBE_DEFER)
+			cnss_pr_err("Failed to set max PCIe RC%x link speed to Gen2, err = %d\n",
+				    rc_num, ret);
 	}
 
 	cnss_pr_dbg("Trying to enumerate with PCIe RC%x\n", rc_num);

@@ -14,6 +14,8 @@
 #include <linux/sys_soc.h>
 #include <linux/types.h>
 #include <soc/qcom/socinfo.h>
+#include <linux/bug.h>
+#include <linux/init.h>
 
 /*
  * SoC version type with major number in the upper 16 bits and minor
@@ -920,6 +922,31 @@ msm_get_images(struct device *dev,
 	return pos;
 }
 
+unsigned int __read_mostly is_debug_level_low = 0;
+static int __init sec_debug_level(char *val) __attribute__((unused));
+static int __init sec_debug_level(char *val)
+{
+	is_debug_level_low = strncmp(val, "0x4f4c", 6) ? 0 : 1;
+	pr_info("%s, is_debug_level_low:%d(%s)\n", __func__, is_debug_level_low, val);
+	return 1;
+}
+__setup("androidboot.debug_level=", sec_debug_level);
+
+static ssize_t
+msm_get_crash(struct device *dev,
+			struct device_attribute *attr,
+			char *buf)
+{
+	int ret = 0;
+
+	if (!is_debug_level_low) {
+#ifndef CONFIG_SEC_CDSP_NO_CRASH_FOR_ENG
+	BUG_ON(1);
+#endif /* CONFIG_SEC_CDSP_NO_CRASH_FOR_ENG */
+	}
+	return ret;
+}
+
 static struct device_attribute image_version =
 	__ATTR(image_version, 0644,
 			msm_get_image_version, msm_set_image_version);
@@ -939,6 +966,8 @@ static struct device_attribute select_image =
 static struct device_attribute images =
 	__ATTR(images, 0444, msm_get_images, NULL);
 
+static struct device_attribute crash =
+	__ATTR(crash, 0444, msm_get_crash, NULL);
 
 static umode_t soc_info_attribute(struct kobject *kobj,
 						   struct attribute *attr,
@@ -1013,10 +1042,11 @@ static void socinfo_populate_sysfs(struct qcom_socinfo *qcom_socinfo)
 	msm_custom_socinfo_attrs[i++] = &image_crm_version.attr;
 	msm_custom_socinfo_attrs[i++] = &select_image.attr;
 	msm_custom_socinfo_attrs[i++] = &images.attr;
+	msm_custom_socinfo_attrs[i++] = &crash.attr;
 	msm_custom_socinfo_attrs[i++] = NULL;
 	qcom_socinfo->attr.custom_attr_group = &custom_soc_attr_group;
 }
-
+#ifndef CONFIG_SAMSUNG_PRODUCT_SHIP
 static void socinfo_print(void)
 {
 	uint32_t f_maj = SOCINFO_MAJOR(socinfo_format);
@@ -1203,6 +1233,7 @@ static void socinfo_print(void)
 		break;
 	}
 }
+#endif
 
 static const char *socinfo_machine(unsigned int id)
 {
@@ -1262,7 +1293,9 @@ static int qcom_socinfo_probe(struct platform_device *pdev)
 	qsocinfo = qs;
 	init_rwsem(&qs->current_image_rwsem);
 	socinfo_populate_sysfs(qs);
+#ifndef CONFIG_SAMSUNG_PRODUCT_SHIP
 	socinfo_print();
+#endif
 
 	qs->soc_dev = soc_device_register(&qs->attr);
 	if (IS_ERR(qs->soc_dev))

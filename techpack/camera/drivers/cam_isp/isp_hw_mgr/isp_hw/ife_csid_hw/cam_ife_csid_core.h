@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2017-2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2017-2020, The Linux Foundation. All rights reserved.
  */
 
 #ifndef _CAM_IFE_CSID_HW_H_
@@ -487,7 +487,6 @@ struct cam_ife_csid_tpg_cfg  {
  * @cnt:              Cid resource reference count.
  * @tpg_set:          Tpg used for this cid resource
  * @is_valid_vc1_dt1: Valid vc1 and dt1
- * @init_cnt          cid resource init count
  *
  */
 struct cam_ife_csid_cid_data {
@@ -498,7 +497,6 @@ struct cam_ife_csid_cid_data {
 	uint32_t                     cnt;
 	uint32_t                     tpg_set;
 	uint32_t                     is_valid_vc1_dt1;
-	uint32_t                     init_cnt;
 };
 
 
@@ -601,7 +599,7 @@ struct cam_csid_evt_payload {
  * @csid_udin_reset_complete: udi n completion
  * @csid_debug:               csid debug information to enable the SOT, EOT,
  *                            SOF, EOF, measure etc in the csid hw
- * @clk_rate                  Current clock rate
+ * @clk_rate                  Clock rate
  * @sof_irq_triggered:        Flag is set on receiving event to enable sof irq
  *                            incase of SOF freeze.
  * @is_resetting:             informs whether reset is started or not.
@@ -615,6 +613,7 @@ struct cam_csid_evt_payload {
  * @epd_supported             Flag is set if sensor supports EPD
  * @fatal_err_detected        flag to indicate fatal errror is reported
  * @event_cb                  Callback to hw manager if CSID event reported
+ * @cust_node                 indicates csid is for custom
  */
 struct cam_ife_csid_hw {
 	struct cam_hw_intf              *hw_intf;
@@ -661,6 +660,8 @@ struct cam_ife_csid_hw {
 	uint32_t                         epd_supported;
 	bool                             fatal_err_detected;
 	cam_hw_mgr_event_cb_func         event_cb;
+	int32_t                          ctx_idx;
+	bool                             cust_node;
 };
 
 int cam_ife_csid_hw_probe_init(struct cam_hw_intf  *csid_hw_intf,

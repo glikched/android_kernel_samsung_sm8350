@@ -211,6 +211,90 @@ static int vx_show(struct seq_file *seq, void *data)
 	return 0;
 }
 
+#if IS_ENABLED(CONFIG_SEC_PM)
+struct vx_platform_data *local_pd;
+
+static void debug_show_vx_data(struct vx_platform_data *pd, struct vx_log *log)
+{
+	int i, j;
+	struct vx_header *hdr = &log->header;
+	struct vx_data *data;
+	char buf[255];
+	char *buf_ptr = buf;
+	u32 prev;
+	bool log_is_full = false;
+
+	printk(KERN_INFO "PM: CXSD blocker\nTimestamp|\n");
+
+	if (log->loglines == 42) {
+		log_is_full = true;
+		i = 0;
+	} else {
+		i = (log->loglines < 14) ? 0 : (log->loglines -14);
+	}
+
+	for ( ; i < log->loglines; i++) {
+		if (log_is_full) {
+			/* Show only multiples of 3 indexes */
+			if (i%3 != 0) continue;
+		}
+		
+		data = &log->data[i];
+		buf_ptr += sprintf(buf_ptr, "%*x|", 9, data->ts);
+
+		/* An all-zero line indicates we entered LPM */
+		for (j = 0, prev = data->drv_vx[0]; j < pd->ndrv; j++)
+			prev |= data->drv_vx[j];
+		if (!prev) {
+			buf_ptr += sprintf(buf_ptr, " %s Enter\n", MODE_STR(hdr->mode.type));
+			printk(KERN_INFO "%s", buf);
+
+			buf[0] = '\0';
+			buf_ptr = buf;
+			continue;
+		}
+
+		/* Show non-zero items only */
+		for (j = 0; j < pd->ndrv; j++) {
+			if(data->drv_vx[j])
+				buf_ptr += sprintf(buf_ptr, " %s (%u)", pd->drvs[j], data->drv_vx[j]);
+		}
+		buf_ptr += sprintf(buf_ptr, "\n");
+		printk(KERN_INFO "%s", buf);
+
+		buf[0] = '\0';
+		buf_ptr = buf;
+	}
+
+	return ;
+}
+
+int debug_vx_show(void)
+{
+	struct vx_log log;
+	int ret;
+	int i;
+
+	/*
+	 * Read the data into memory to allow for
+	 * post processing of data and present it
+	 * cleanly.
+	 */
+	ret = read_vx_data(local_pd, &log);
+	if (ret)
+		return ret;
+
+	debug_show_vx_data(local_pd, &log);
+
+	for (i = 0; i < log.loglines; i++)
+		kfree(log.data[i].drv_vx);
+	kfree(log.data);
+
+	return 0;
+}
+EXPORT_SYMBOL(debug_vx_show);
+#endif /* CONFIG_SEC_PM */
+
 static int open_vx(struct inode *inode, struct file *file)
 {
 	return single_open(file, vx_show, inode->i_private);
@@ -271,6 +355,10 @@ static int vx_probe(struct platform_device *pdev)
 	}
 	pd->ndrv = i;
 	pd->drvs = drvs;
+
+#if IS_ENABLED(CONFIG_SEC_PM)
+	local_pd = pd;
+#endif /* CONFIG_SEC_PM */
 
 	ret = vx_create_debug_nodes(pd);
 	if (ret)

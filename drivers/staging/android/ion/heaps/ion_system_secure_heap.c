@@ -206,17 +206,30 @@ static void ion_system_secure_heap_prefetch_work(struct work_struct *work)
 	struct ion_heap *sys_heap = secure_heap->sys_heap;
 	struct prefetch_info *info, *tmp;
 	unsigned long flags;
+	int nr_entries = 0, idx = 0;
+	unsigned long long start, end;
 
 	spin_lock_irqsave(&secure_heap->work_lock, flags);
+
+	list_for_each_entry_safe(info, tmp,
+		&secure_heap->prefetch_list, list) {
+		nr_entries++;
+	}
+
 	list_for_each_entry_safe(info, tmp,
 				 &secure_heap->prefetch_list, list) {
 		list_del(&info->list);
 		spin_unlock_irqrestore(&secure_heap->work_lock, flags);
 
+		start = ktime_get_ns();
+
 		if (info->shrink)
 			process_one_shrink(secure_heap, sys_heap, info);
 		else
 			process_one_prefetch(sys_heap, info);
+
+		end = ktime_get_ns();
+		pr_info("[%d:%d] 0x%lx, 0x%x, %lld, %lld %d\n", idx++, nr_entries, info->size, info->vmid, start, end - start, info->shrink);
 
 		kfree(info);
 		spin_lock_irqsave(&secure_heap->work_lock, flags);
@@ -272,7 +285,7 @@ static int __ion_system_secure_heap_resize(struct ion_heap *heap,
 	}
 	list_splice_tail_init(&items, &secure_heap->prefetch_list);
 	queue_delayed_work(secure_heap->prefetch_wq,
-			   &secure_heap->prefetch_work,
+			&secure_heap->prefetch_work,
 			   shrink ?  msecs_to_jiffies(SHRINK_DELAY) : 0);
 	spin_unlock_irqrestore(&secure_heap->work_lock, flags);
 
@@ -349,7 +362,7 @@ struct ion_heap *ion_system_secure_heap_create(struct ion_platform_heap *unused)
 			  ion_system_secure_heap_prefetch_work);
 
 	heap->prefetch_wq = alloc_workqueue("system_secure_prefetch_wq",
-					    WQ_UNBOUND | WQ_FREEZABLE, 0);
+		 WQ_UNBOUND | WQ_FREEZABLE, 0);
 	if (!heap->prefetch_wq) {
 		pr_err("Failed to create system secure prefetch workqueue\n");
 		kfree(heap);

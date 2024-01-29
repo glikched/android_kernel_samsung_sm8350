@@ -2,7 +2,6 @@
 #include <dt-bindings/input/qcom,qpnp-power-on.h>
 #include <dt-bindings/interrupt-controller/irq.h>
 #include <dt-bindings/spmi/spmi.h>
-#include <dt-bindings/iio/qcom,spmi-adc7-pm8350b.h>
 #include <dt-bindings/iio/qcom,spmi-adc7-pm8350.h>
 #include <dt-bindings/iio/qcom,spmi-adc7-pmk8350.h>
 #include <dt-bindings/iio/qcom,spmi-adc7-pmr735a.h>
@@ -109,37 +108,6 @@
 				qcom,pre-scaling = <1 3>;
 			};
 
-			/* PM8350b Channel nodes */
-			pm8350b_ref_gnd {
-				reg = <PM8350B_ADC7_REF_GND>;
-				label = "pm8350b_ref_gnd";
-				qcom,pre-scaling = <1 1>;
-			};
-
-			pm8350b_vref_1p25 {
-				reg = <PM8350B_ADC7_1P25VREF>;
-				label = "pm8350b_vref_1p25";
-				qcom,pre-scaling = <1 1>;
-			};
-
-			pm8350b_die_temp {
-				reg = <PM8350B_ADC7_DIE_TEMP>;
-				label = "pm8350b_die_temp";
-				qcom,pre-scaling = <1 1>;
-			};
-
-			pm8350b_vph_pwr {
-				reg = <PM8350B_ADC7_VPH_PWR>;
-				label = "pm8350b_vph_pwr";
-				qcom,pre-scaling = <1 3>;
-			};
-
-			pm8350b_vbat_sns {
-				reg = <PM8350B_ADC7_VBAT_SNS>;
-				label = "pm8350b_vbat_sns";
-				qcom,pre-scaling = <1 3>;
-			};
-
 			/* PMR735a Channel nodes */
 			pmr735a_ref_gnd {
 				reg = <PMR735A_ADC7_REF_GND>;
@@ -199,6 +167,11 @@
 				reg = <0x48 0x1>;
 				bits = <1 7>;
 			};
+		};
+
+		pmk8350_sdam_3: sdam@7200 {
+			compatible = "qcom,spmi-sdam";
+			reg = <0x7200>;
 		};
 
 		pmk8350_sdam_5: sdam@7400 {

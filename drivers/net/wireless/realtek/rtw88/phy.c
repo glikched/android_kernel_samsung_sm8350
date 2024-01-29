@@ -1451,7 +1451,7 @@ void rtw_phy_load_tables(struct rtw_dev *rtwdev)
 	}
 }
 
-static u8 rtw_get_channel_group(u8 channel, u8 rate)
+static u8 rtw_get_channel_group(u8 channel)
 {
 	switch (channel) {
 	default:
@@ -1495,7 +1495,6 @@ static u8 rtw_get_channel_group(u8 channel, u8 rate)
 	case 106:
 		return 4;
 	case 14:
-		return rate <= DESC_RATE11M ? 5 : 4;
 	case 108:
 	case 110:
 	case 112:
@@ -1745,7 +1744,7 @@ void rtw_get_tx_power_params(struct rtw_dev *rtwdev, u8 path, u8 rate, u8 bw,
 	s8 *limit = &pwr_param->pwr_limit;
 
 	pwr_idx = &rtwdev->efuse.txpwr_idx_table[path];
-	group = rtw_get_channel_group(ch, rate);
+	group = rtw_get_channel_group(ch);
 
 	/* base power index for 2.4G/5G */
 	if (ch <= 14) {

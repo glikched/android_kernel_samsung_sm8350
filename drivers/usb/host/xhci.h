@@ -2623,6 +2623,24 @@ static inline const char *xhci_decode_portsc(char *str, u32 portsc)
 	return str;
 }
 
+static inline const char *xhci_ep_state_string(u8 state)
+{
+	switch (state) {
+	case EP_STATE_DISABLED:
+		return "disabled";
+	case EP_STATE_RUNNING:
+		return "running";
+	case EP_STATE_HALTED:
+		return "halted";
+	case EP_STATE_STOPPED:
+		return "stopped";
+	case EP_STATE_ERROR:
+		return "error";
+	default:
+		return "INVALID";
+	}
+}
+
 static inline const char *xhci_decode_doorbell(u32 slot, u32 doorbell)
 {
 	static char str[256];
@@ -2650,24 +2668,6 @@ static inline const char *xhci_decode_doorbell(u32 slot, u32 doorbell)
 		ret = sprintf(str + ret, " Stream %d", stream);
 
 	return str;
-}
-
-static inline const char *xhci_ep_state_string(u8 state)
-{
-	switch (state) {
-	case EP_STATE_DISABLED:
-		return "disabled";
-	case EP_STATE_RUNNING:
-		return "running";
-	case EP_STATE_HALTED:
-		return "halted";
-	case EP_STATE_STOPPED:
-		return "stopped";
-	case EP_STATE_ERROR:
-		return "error";
-	default:
-		return "INVALID";
-	}
 }
 
 static inline const char *xhci_ep_type_string(u8 type)

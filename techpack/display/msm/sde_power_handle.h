@@ -112,6 +112,10 @@ struct sde_power_data_bus_handle {
 	struct sde_power_bus_scaling_data curr_val;
 	u32 data_paths_cnt;
 	bool bus_active_only;
+#if defined(CONFIG_DISPLAY_SAMSUNG)
+	u64 in_ab_quota;
+	u64 in_ib_quota;
+#endif
 };
 
 /**

@@ -128,6 +128,9 @@ static int _dce_dsc_initial_line_calc(struct msm_display_dsc_info *dsc,
 	int rtl_max_bpc = 10, rtl_output_data_width = 64;
 	int pipeline_latency = 28;
 
+	if ((num_of_active_ss > 1) && (dsc->half_panel_pu))
+		num_of_active_ss >>= 1;
+
 	if (dsc_cmn_mode & DSC_MODE_MULTIPLEX)
 		multiplex_mode_enable = 1;
 	if (dsc_cmn_mode & DSC_MODE_SPLIT_PANEL)
@@ -360,7 +363,7 @@ static int _dce_dsc_setup_single(struct sde_encoder_virt *sde_enc,
 	cfg.dsc[cfg.dsc_count++] = hw_dsc->idx;
 
 	if (hw_ctl->ops.update_intf_cfg)
-		hw_ctl->ops.update_intf_cfg(hw_ctl, &cfg, active);
+		hw_ctl->ops.update_intf_cfg(hw_ctl, &cfg, true);
 
 	if (hw_ctl->ops.update_bitmask)
 		hw_ctl->ops.update_bitmask(hw_ctl, SDE_HW_FLUSH_DSC,
@@ -982,3 +985,17 @@ int sde_encoder_dce_setup(struct sde_encoder_virt *sde_enc,
 
 	return rc;
 }
+
+#if defined(CONFIG_DISPLAY_SAMSUNG)
+int sde_encoder_is_dsc_enabled(struct sde_encoder_virt *sde_enc)
+{
+	enum msm_display_compression_type comp_type;
+
+	if (!sde_enc)
+		return -EINVAL;
+
+	comp_type = sde_enc->mode_info.comp_info.comp_type;
+
+	return (comp_type == MSM_DISPLAY_COMPRESSION_DSC);
+}
+#endif

@@ -30,7 +30,9 @@
 #include <linux/soc/qcom/smem_state.h>
 
 #include "peripheral-loader.h"
-
+#ifdef CONFIG_SENSORS_SSC
+#include <linux/adsp/ssc_ssr_reason.h>
+#endif
 #define PIL_TZ_AVG_BW  0
 #define PIL_TZ_PEAK_BW UINT_MAX
 
@@ -56,6 +58,9 @@ struct reg_info {
 	struct regulator *reg;
 	int uV;
 	int uA;
+#if defined(CONFIG_SUB_SENSOR_VDD)
+	bool valid;
+#endif
 };
 
 /**
@@ -171,6 +176,9 @@ static int wait_for_err_ready(struct pil_tz_data *d)
 					  msecs_to_jiffies(10000));
 	if (!ret) {
 		pr_err("[%s]: Error ready timed out\n", d->desc.name);
+		if(!strcmp(d->desc.name, "modem"))	{
+			panic("Modem booting fail !");
+		}
 		return -ETIMEDOUT;
 	}
 
@@ -302,12 +310,23 @@ static int of_read_regs(struct device *dev, struct reg_info **regs_ref,
 					      &reg_name);
 
 		regs[i].reg = devm_regulator_get(dev, reg_name);
+#if defined(CONFIG_SUB_SENSOR_VDD)
+		regs[i].valid = true;
+#endif
 		if (IS_ERR(regs[i].reg)) {
 			int rc = PTR_ERR(regs[i].reg);
 
 			if (rc != -EPROBE_DEFER)
 				dev_err(dev, "Failed to get %s\n regulator\n",
 								reg_name);
+#if defined(CONFIG_SUB_SENSOR_VDD)
+			if (!strcmp(reg_name, "subsensor_vdd")) {
+				regs[i].valid = false;
+				continue;
+			} else {
+				dev_err(dev, "Failed to get %s regulator\n", reg_name);
+			}
+#endif
 			return rc;
 		}
 
@@ -445,6 +464,12 @@ static int enable_regulators(struct pil_tz_data *d, struct device *dev,
 	int i, rc = 0;
 
 	for (i = 0; i < reg_count; i++) {
+#if defined(CONFIG_SUB_SENSOR_VDD)
+		if (!regs[i].valid) {
+			dev_err(dev, "reg[%d] invalid", i);
+			continue;
+		}
+#endif
 		if (regs[i].uV > 0) {
 			rc = regulator_set_voltage(regs[i].reg,
 					regs[i].uV, INT_MAX);
@@ -506,6 +531,10 @@ static void disable_regulators(struct pil_tz_data *d, struct reg_info *regs,
 	int i;
 
 	for (i = 0; i < reg_count; i++) {
+#if defined(CONFIG_SUB_SENSOR_VDD)
+		if (!regs[i].valid)
+			continue;
+#endif
 		if (regs[i].uV > 0)
 			regulator_set_voltage(regs[i].reg, 0, INT_MAX);
 
@@ -780,6 +809,14 @@ static void log_failure_reason(const struct pil_tz_data *d)
 
 	strlcpy(reason, smem_reason, min(size, (size_t)MAX_SSR_REASON_LEN));
 	pr_err("%s subsystem failure reason: %s.\n", name, reason);
+
+#ifdef CONFIG_SENSORS_SSC
+	if (!strncmp(name, "slpi", 4)) {
+		ssr_reason_call_back(reason, min(size, (size_t)MAX_SSR_REASON_LEN));
+		if (strstr(reason, "IPLSREVOCER"))
+			subsys_set_fssr(d->subsys, true);
+	}
+#endif
 }
 
 static int subsys_shutdown(const struct subsys_desc *subsys, bool force_stop)
@@ -890,7 +927,12 @@ static void subsys_crash_shutdown(const struct subsys_desc *subsys)
 		qcom_smem_state_update_bits(d->state,
 			BIT(d->force_stop_bit),
 			BIT(d->force_stop_bit));
-		mdelay(CRASH_STOP_ACK_TO_MS);
+#if defined(CONFIG_SEC_DEBUG)
+		if (likely(!in_atomic()))
+			msleep(CRASH_STOP_ACK_TO_MS);
+		else
+#endif
+			mdelay(CRASH_STOP_ACK_TO_MS);
 	}
 }
 
@@ -1552,6 +1594,10 @@ load_from_pil:
 		rc = PTR_ERR(d->subsys);
 		goto err_subsys;
 	}
+	
+	/* NOTE: copy smem_state here for reset reason gpio */
+	if (!strncmp(d->subsys_desc.name, "modem", 5)) 
+		d->subsys_desc.state = d->state;
 
 	rc = subsys_setup_irqs(pdev);
 	if (rc) {

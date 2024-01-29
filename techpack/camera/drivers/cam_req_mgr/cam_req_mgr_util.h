@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2016-2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2016-2020, The Linux Foundation. All rights reserved.
  */
 
 #ifndef _CAM_REQ_MGR_UTIL_API_H_
@@ -166,11 +166,10 @@ int32_t cam_req_mgr_util_deinit(void);
  */
 int32_t cam_req_mgr_util_free_hdls(void);
 
-/**
- * cam_get_dev_handle_status() - get dev handles status
- *
- * Returns dev handle status
- */
-uint64_t cam_get_dev_handle_status(void);
+#if defined(CONFIG_SAMSUNG_SBI)
+bool cam_req_mgr_get_is_crm_in_ssm_mode(void);
+void cam_req_mgr_set_is_crm_in_ssm_mode(bool val);
+#endif
 
 #endif /* _CAM_REQ_MGR_UTIL_API_H_ */
+

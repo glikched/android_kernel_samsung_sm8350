@@ -58,6 +58,8 @@
 #undef CREATE_TRACE_POINTS
 #include <trace/hooks/debug.h>
 
+#include <linux/sec_debug.h>
+
 DEFINE_PER_CPU_READ_MOSTLY(int, cpu_number);
 EXPORT_PER_CPU_SYMBOL(cpu_number);
 
@@ -865,6 +867,9 @@ static void local_cpu_stop(void)
 		pr_crit("CPU%u: stopping\n", cpu);
 		__show_regs(regs);
 		dump_stack();
+#if IS_ENABLED(CONFIG_SEC_DEBUG)
+		sec_debug_save_context();
+#endif
 		raw_spin_unlock(&stop_lock);
 	}
 

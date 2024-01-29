@@ -1314,6 +1314,11 @@ config TOUCHSCREEN_IQS5XX
 source "drivers/input/touchscreen/st/Kconfig"
 
 source "drivers/input/touchscreen/focaltech_touch/Kconfig"
+source "drivers/input/touchscreen/sec_ts/y79a/Kconfig"
+source "drivers/input/touchscreen/sec_ts/y79a_c/Kconfig"
+source "drivers/input/touchscreen/stm/fts9cu80f_b/Kconfig"
+source "drivers/input/touchscreen/stm/fts9cu80f_spi/Kconfig"
+source "drivers/input/touchscreen/zinitix/ztw522/Kconfig"
 
 source "drivers/input/touchscreen/synaptics_tcm/Kconfig"
 

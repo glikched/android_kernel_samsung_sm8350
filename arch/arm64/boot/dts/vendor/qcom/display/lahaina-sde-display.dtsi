@@ -98,8 +98,8 @@
 	vddio-supply = <&L12C>;
 	vdd-supply = <&L13C>;
 	avdd-supply = <&display_panel_avdd>;
-	lab-supply = <&ab_vreg>;
-	ibb-supply = <&ibb_vreg>;
+//	lab-supply = <&ab_vreg>;
+//	ibb-supply = <&ibb_vreg>;
 };
 
 &sde_dsi1 {

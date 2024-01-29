@@ -38,6 +38,11 @@ struct cam_soc_bus_client_common_data {
 	uint32_t src_id;
 	uint32_t dst_id;
 	int num_usecases;
+#if defined(CONFIG_SAMSUNG_SBI_QOS_TUNE)
+	uint32_t num_additional_paths;
+	uint32_t add_src_id[2];
+	uint32_t add_dst_id[2];
+#endif
 	struct cam_soc_bus_client_ab_ib bw_pair[CAM_SOC_BUS_MAX_NUM_USECASES];
 };
 
@@ -58,8 +63,13 @@ struct cam_soc_bus_client {
 
 int cam_soc_bus_client_update_request(void *client, unsigned int idx);
 
+#if defined(CONFIG_SAMSUNG_SBI_QOS_TUNE)
+int cam_soc_bus_client_update_bw(void *client, uint64_t ab,
+	uint64_t ib, uint64_t additional_ib);
+#else
 int cam_soc_bus_client_update_bw(void *client, uint64_t ab,
 	uint64_t ib);
+#endif
 
 int cam_soc_bus_client_register(struct platform_device *pdev,
 	struct device_node *dev_node, void **client,
@@ -74,8 +84,13 @@ static inline int cam_soc_bus_client_update_request(void *client,
 	return 0;
 }
 
+#if defined(CONFIG_SAMSUNG_SBI_QOS_TUNE)
+static inline int cam_soc_bus_client_update_bw(void *client,
+	uint64_t ab, uint64_t ib, uint64_t additional_ib)
+#else
 static inline int cam_soc_bus_client_update_bw(void *client,
 	uint64_t ab, uint64_t ib)
+#endif
 {
 	return 0;
 }

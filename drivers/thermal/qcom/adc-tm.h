@@ -315,4 +315,12 @@ int32_t adc_tm_write_reg(struct adc_tm_chip *chip,
 
 int adc_tm_is_valid(struct adc_tm_chip *chip);
 
+#if IS_ENABLED(CONFIG_SEC_EXT_THERMAL_MONITOR)
+#define USB_THM_CH	0x45
+#define WPC_THM_CH	0x4B
+
+int sec_convert_adc_to_temp(unsigned int adc_ch, int temp_adc);
+int sec_get_thr_voltage(unsigned int adc_ch, int temp);
+#endif /* CONFIG_SEC_EXT_THERMAL_MONITOR */
+
 #endif /* __QCOM_ADC_TM_H__ */

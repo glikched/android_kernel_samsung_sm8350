@@ -20,12 +20,27 @@
 #include <linux/delay.h>
 #include <linux/sysfs.h>
 #include <linux/workqueue.h>
+#ifdef CONFIG_SUPPORT_SSC_SPU
+#include <linux/adsp/ssc_spu.h>
+#endif
 
 #include <soc/qcom/subsystem_restart.h>
+#ifdef CONFIG_SENSORS_SSC
+#include <linux/adsp/ssc_ssr_reason.h>
+#endif
+#if defined(CONFIG_SEC_FACTORY) && defined(CONFIG_SUPPORT_DUAL_6AXIS)
+static bool pretest = false;
+#endif
 
 #define IMAGE_LOAD_CMD 1
 #define IMAGE_UNLOAD_CMD 0
 #define SSR_RESET_CMD 1
+#define SET_PRETEST_SSR 2
+#define CLR_PRETEST_SSR 3
+#define SET_DHALL_SSR 4
+#define CLR_DHALL_SSR 5
+#define SSR_LOAD_SPU 8
+#define SSR_FORCE_RESET_CMD 9
 #define CLASS_NAME	"ssc"
 #define DRV_NAME	"sensors"
 #define DRV_VERSION	"2.00"
@@ -34,6 +49,13 @@
 #endif
 
 #define QTICK_DIV_FACTOR	0x249F
+
+#ifdef CONFIG_SUPPORT_SSC_SPU
+#define SPU_FW_UPDATE_CMD	4
+#define SPU_FW_UPDATE_CMD_SIZE	9
+#define SPU_SUFFIX_SIZE		2
+#define SPU_SUFFIX_IDX		12
+#endif
 
 struct sns_ssc_control_s {
 	struct class *dev_class;
@@ -51,6 +73,15 @@ static ssize_t slpi_ssr_store(struct kobject *kobj,
 	struct kobj_attribute *attr,
 	const char *buf, size_t count);
 
+#ifdef CONFIG_SUPPORT_SSC_SPU
+static ssize_t slpi_cmd_store(struct kobject *kobj,
+	struct kobj_attribute *attr,
+	const char *buf, size_t count);
+
+static ssize_t slpi_cmd_result_show(struct kobject *kobj,
+	struct kobj_attribute *attr, char *buf);
+#endif
+
 struct slpi_loader_private {
 	void *pil_h;
 	struct kobject *boot_slpi_obj;
@@ -63,14 +94,35 @@ static struct kobj_attribute slpi_boot_attribute =
 static struct kobj_attribute slpi_ssr_attribute =
 	__ATTR(ssr, 0220, NULL, slpi_ssr_store);
 
+#ifdef CONFIG_SUPPORT_SSC_SPU
+static struct kobj_attribute slpi_cmd_attribute =
+	__ATTR(cmd, 0220, NULL, slpi_cmd_store);
+
+static struct kobj_attribute slpi_cmd_result_attribute =
+	__ATTR(cmd_result, 0440, slpi_cmd_result_show, NULL);
+#endif
+
 static struct attribute *attrs[] = {
 	&slpi_boot_attribute.attr,
 	&slpi_ssr_attribute.attr,
+#ifdef CONFIG_SUPPORT_SSC_SPU
+	&slpi_cmd_attribute.attr,
+	&slpi_cmd_result_attribute.attr,
+#endif
 	NULL,
 };
 
 static struct platform_device *slpi_private;
 static struct work_struct slpi_ldr_work;
+
+static unsigned int ssc_system_rev;
+
+unsigned int ssc_hw_rev(void)
+{
+	pr_info("%s - ssc_hw_rev = %u\n", __func__, ssc_system_rev);
+	return ssc_system_rev;
+}
+EXPORT_SYMBOL(ssc_hw_rev);
 
 static void slpi_load_fw(struct work_struct *slpi_ldr_work)
 {
@@ -97,6 +149,13 @@ static void slpi_load_fw(struct work_struct *slpi_ldr_work)
 		goto fail;
 	}
 
+	ret = of_property_read_u32(pdev->dev.of_node,
+		"qcom,ssc_hw_rev", &ssc_system_rev);
+	if (ret < 0)
+		pr_err("can't get ssc_hw_rev.\n");
+	else
+		pr_info("%s - ssc_hw_rev = %u\n", __func__, ssc_system_rev);
+
 	priv = platform_get_drvdata(pdev);
 	if (!priv) {
 		dev_err(&pdev->dev,
@@ -106,8 +165,7 @@ static void slpi_load_fw(struct work_struct *slpi_ldr_work)
 
 	priv->pil_h = subsystem_get_with_fwname("slpi", firmware_name);
 	if (IS_ERR(priv->pil_h)) {
-		dev_err(&pdev->dev, "%s: pil get failed,\n",
-			__func__);
+		dev_err(&pdev->dev, "%s: pil get failed,\n", __func__);
 		goto fail;
 	}
 
@@ -140,6 +198,71 @@ static void slpi_loader_unload(struct platform_device *pdev)
 	}
 }
 
+#ifdef CONFIG_SUPPORT_SSC_SPU
+int fw_idx = SSC_ORI;
+static bool spu_update_done = false;
+int ssc_get_fw_idx(void)
+{
+	return fw_idx;
+}
+EXPORT_SYMBOL(ssc_get_fw_idx);
+
+char cmd_result_buf[20] = {"fw_update,4:NG"};
+static ssize_t slpi_cmd_store(struct kobject *kobj,
+	struct kobj_attribute *attr,
+	const char *buf,
+	size_t count)
+{
+	struct subsys_device *sns_dev = NULL;
+	struct platform_device *pdev = slpi_private;
+	struct slpi_loader_private *priv = NULL;
+	char cmd_buf[15] = {0, };
+	int nval = 0, cmd = 0;
+
+	nval = sscanf(buf, "%9s,%d", cmd_buf, &cmd);
+	pr_info("%s: buf:%s, cmd:%d,%d\n", __func__, cmd_buf, cmd, nval);
+
+	if (!strncmp(cmd_buf, "fw_update", SPU_FW_UPDATE_CMD_SIZE)
+		&& cmd == SPU_FW_UPDATE_CMD) {
+		priv = platform_get_drvdata(pdev);
+		if (!priv) {
+			pr_err("fail, priv NULL");
+			return count;
+		}
+
+		sns_dev = (struct subsys_device *)priv->pil_h;
+		if (!sns_dev) {
+			pr_err("fail, sns_dev NULL");
+			return count;
+		} else {
+			int ret = 0;
+
+			pr_info("Start upload SPU firm");
+			ret = subsystem_set_fwname("slpi", "slpi_spu");
+			if (ret < 0) {
+				pr_err("fail, firmware name for PIL (%d)\n", ret);
+				return count;
+			}
+			subsys_set_fssr(sns_dev, true);
+		}
+
+		if (subsystem_restart_dev(sns_dev) != 0) {
+			pr_err("subsystem_restart_dev failed\n");
+			return count;
+		} else {
+			strncpy(&cmd_result_buf[SPU_SUFFIX_IDX], "OK", SPU_SUFFIX_SIZE);
+		}
+	}
+	return count;
+}
+
+static ssize_t slpi_cmd_result_show(struct kobject *kobj,
+	struct kobj_attribute *attr, char *buf)
+{
+	return snprintf(buf, PAGE_SIZE, "%s\n", cmd_result_buf);
+}
+#endif
+
 static ssize_t slpi_ssr_store(struct kobject *kobj,
 	struct kobj_attribute *attr,
 	const char *buf,
@@ -149,14 +272,38 @@ static ssize_t slpi_ssr_store(struct kobject *kobj,
 	struct subsys_device *sns_dev = NULL;
 	struct platform_device *pdev = slpi_private;
 	struct slpi_loader_private *priv = NULL;
+#ifdef CONFIG_SENSORS_SSC
+	char *reason = "slpi_ssr_store";
+#endif
 
 	pr_debug("%s: going to call slpi_ssr\n", __func__);
 
 	if (kstrtoint(buf, 10, &ssr_cmd) < 0)
 		return -EINVAL;
-
-	if (ssr_cmd != SSR_RESET_CMD)
+#if defined(CONFIG_SEC_FACTORY) && defined(CONFIG_SUPPORT_DUAL_6AXIS)
+	if (ssr_cmd == SET_PRETEST_SSR) {
+		pr_info("[FACTORY] Set Pretest SSR. slpi will be restarted!!\n");
+		pretest = true;
+	} else if (ssr_cmd == CLR_PRETEST_SSR) {
+		pr_info("[FACTORY] Clear Pretest SSR. return without slpi ssr!!\n");
+		pretest = false;
+		return count;
+	} else if (ssr_cmd == SET_DHALL_SSR) {
+		pr_info("[FACTORY] SET_DHALL_SSR. slpi will be restarted!!\n");
+		pretest = true;
+	} else if (ssr_cmd == CLR_DHALL_SSR) {
+		pr_info("[FACTORY] CLR_DHALL_SSR. return without slpi ssr!!\n");
+		pretest = false;
+		return count;
+	} else if (ssr_cmd != SSR_RESET_CMD) {
 		return -EINVAL;
+	}
+#else
+	if (ssr_cmd != SSR_RESET_CMD &&
+		ssr_cmd != SSR_FORCE_RESET_CMD &&
+		ssr_cmd != SSR_LOAD_SPU)
+		return -EINVAL;
+#endif
 
 	priv = platform_get_drvdata(pdev);
 	if (!priv)
@@ -167,7 +314,32 @@ static ssize_t slpi_ssr_store(struct kobject *kobj,
 		return -EINVAL;
 
 	dev_err(&pdev->dev, "Something went wrong with SLPI, restarting\n");
+	if (ssr_cmd == SSR_FORCE_RESET_CMD) {
+		pr_info("Run Force SSR for SS, cmd:%d\n", ssr_cmd);
+		subsys_set_fssr(sns_dev, true);
+	}
+#ifdef CONFIG_SUPPORT_SSC_SPU
+	else if (ssr_cmd == SSR_LOAD_SPU) {
+		int ret = 0;
 
+		pr_info("Upload SPU firm, cmd:%d, %d\n",
+			ssr_cmd, (int)spu_update_done);
+		if (spu_update_done)
+			return count;
+		ret = subsystem_set_fwname("slpi", "slpi_spu");
+		if (ret < 0) {
+			pr_err("fail to set firmware name for PIL (%d)\n", ret);
+			fw_idx = SSC_ORI_AF_SPU_FAIL;
+			return count;
+		}
+		subsys_set_fssr(sns_dev, true);
+		fw_idx = SSC_SPU;
+		spu_update_done = true;
+	}
+#endif
+#ifdef CONFIG_SENSORS_SSC
+	ssr_reason_call_back(reason, strlen(reason) + 1);
+#endif
 	/* subsystem_restart_dev has worker queue to handle */
 	if (subsystem_restart_dev(sns_dev) != 0) {
 		dev_err(&pdev->dev, "subsystem_restart_dev failed\n");
@@ -177,6 +349,50 @@ static ssize_t slpi_ssr_store(struct kobject *kobj,
 	dev_dbg(&pdev->dev, "SLPI restarted\n");
 	return count;
 }
+
+#if defined(CONFIG_SEC_FACTORY) && defined(CONFIG_SUPPORT_DUAL_6AXIS)
+bool is_pretest(void)
+{
+	return pretest;
+}
+EXPORT_SYMBOL(is_pretest);
+#endif
+
+#ifdef CONFIG_DSP_SLEEP_RECOVERY
+int slpi_ssr(void)
+{
+	struct subsys_device *slpi_dev = NULL;
+	struct platform_device *pdev = slpi_private;
+	struct slpi_loader_private *priv = NULL;
+	int rc;
+
+	dev_dbg(&pdev->dev, "%s: going to call slpi ssr\n ", __func__);
+
+	priv = platform_get_drvdata(pdev);
+	if (!priv)
+		return -EINVAL;
+
+	slpi_dev = (struct subsys_device *)priv->pil_h;
+	if (!slpi_dev)
+		return -EINVAL;
+
+	dev_info(&pdev->dev, "requesting for slpi restart\n");
+
+#ifndef CONFIG_SEC_SLPI_SLEEP_DEBUG
+	dev_info(&pdev->dev, "Set force slpi ssr regardless of debug level\n");
+	subsys_set_fssr(slpi_dev, true);
+#endif
+	/* subsystem_restart_dev has worker queue to handle */
+	rc = subsystem_restart_dev(slpi_dev);
+	if (rc) {
+		dev_err(&pdev->dev, "subsystem_restart_dev failed\n");
+		return rc;
+	}
+
+	dev_info(&pdev->dev, "slpi restarted by intention\n");
+	return 0;
+}
+#endif
 
 static ssize_t slpi_boot_store(struct kobject *kobj,
 	struct kobj_attribute *attr,

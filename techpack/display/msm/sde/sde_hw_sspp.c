@@ -415,6 +415,12 @@ static void sde_hw_sspp_setup_format(struct sde_hw_pipe *ctx,
 
 	/* clear previous UBWC error */
 	SDE_REG_WRITE(c, SSPP_UBWC_ERROR_STATUS + idx, BIT(31));
+
+	if ((rect_mode == SDE_SSPP_RECT_SOLO || rect_mode == SDE_SSPP_RECT_0) &&
+			c->blk_off <= 0xb000)
+		SDE_EVT32(c->blk_off, format_off + idx, src_format,
+				unpack_pat_off + idx, unpack,
+				op_mode_off + idx, opmode);
 }
 
 static void sde_hw_sspp_clear_ubwc_error(struct sde_hw_pipe *ctx)
@@ -526,6 +532,18 @@ static void sde_hw_sspp_setup_pe_config(struct sde_hw_pipe *ctx,
 	SDE_REG_WRITE(c, SSPP_SW_PIX_EXT_C3_TB + idx, lr_pe[3]);
 	SDE_REG_WRITE(c, SSPP_SW_PIX_EXT_C3_REQ_PIXELS + idx,
 			tot_req_pixels[3]);
+
+	if (c->blk_off <= 0xb000)
+		SDE_EVT32(c->blk_off, SSPP_SW_PIX_EXT_C0_LR + idx, lr_pe[0],
+			SSPP_SW_PIX_EXT_C0_TB + idx, tb_pe[0],
+			SSPP_SW_PIX_EXT_C0_REQ_PIXELS + idx, tot_req_pixels[0],
+			SSPP_SW_PIX_EXT_C1C2_LR + idx, lr_pe[1],
+			SSPP_SW_PIX_EXT_C1C2_TB + idx, tb_pe[1],
+			SSPP_SW_PIX_EXT_C1C2_REQ_PIXELS + idx,
+			tot_req_pixels[1],
+			SSPP_SW_PIX_EXT_C3_LR + idx, lr_pe[3],
+			SSPP_SW_PIX_EXT_C3_TB + idx, lr_pe[3],
+			SSPP_SW_PIX_EXT_C3_REQ_PIXELS + idx, tot_req_pixels[3]);
 }
 
 static void _sde_hw_sspp_setup_scaler(struct sde_hw_pipe *ctx,
@@ -696,6 +714,16 @@ static void sde_hw_sspp_setup_rects(struct sde_hw_pipe *ctx,
 	SDE_REG_WRITE(c, SSPP_SRC_YSTRIDE0 + idx, ystride0);
 	SDE_REG_WRITE(c, SSPP_SRC_YSTRIDE1 + idx, ystride1);
 	SDE_REG_WRITE(c, SSPP_DECIMATION_CONFIG + idx, decimation);
+
+	if ((rect_index == SDE_SSPP_RECT_SOLO || rect_index == SDE_SSPP_RECT_0)
+			&& c->blk_off <= 0xb000)
+		SDE_EVT32(c->blk_off, src_size_off + idx, src_size,
+			src_xy_off + idx, src_xy,
+			out_size_off + idx, dst_size,
+			out_xy_off + idx, dst_xy,
+			SSPP_SRC_YSTRIDE0 + idx, ystride0,
+			SSPP_SRC_YSTRIDE1 + idx, ystride1,
+			SSPP_DECIMATION_CONFIG + idx, decimation);
 }
 
 /**

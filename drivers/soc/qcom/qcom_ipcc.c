@@ -11,6 +11,10 @@
 #include <linux/mailbox_controller.h>
 #include <dt-bindings/soc/qcom,ipcc.h>
 
+#if IS_ENABLED(CONFIG_SEC_PM)
+#include <linux/wakeup_reason.h>
+#endif
+
 /* IPCC Register offsets */
 #define IPCC_REG_SEND_ID		0x0C
 #define IPCC_REG_RECV_ID		0x10
@@ -328,9 +332,13 @@ static int qcom_ipcc_pm_resume(struct device *dev)
 	else if (desc->action && desc->action->name)
 		name = desc->action->name;
 
-	pr_warn("%s: %d triggered %s (client-id: %u; signal-id: %u\n",
+	pr_warn("%s: %d triggered %s (client-id: %u; signal-id: %u)\n",
 		__func__, virq, name, qcom_ipcc_get_client_id(packed_id),
 		qcom_ipcc_get_signal_id(packed_id));
+
+#if IS_ENABLED(CONFIG_SEC_PM)
+	log_irq_wakeup_reason(virq);
+#endif
 
 	return 0;
 }

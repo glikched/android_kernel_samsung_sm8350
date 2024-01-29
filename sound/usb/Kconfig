@@ -27,6 +27,12 @@ config SND_USB_AUDIO
 config SND_USB_AUDIO_USE_MEDIA_CONTROLLER
 	bool
 
+config SND_QC_USB_AUDIO_MODULE
+	tristate "QC USB Audio offloading module"
+	depends on SND_USB_AUDIO && SND_USB_AUDIO_QMI
+	help
+	 Say Y here to include support for QC USB Audio ADSP offloading.
+
 config SND_USB_UA101
 	tristate "Edirol UA-101/UA-1000 driver"
 	select SND_PCM

@@ -14,6 +14,9 @@
 #include <linux/iio/consumer.h>
 #include "adc-tm.h"
 #include "../thermal_core.h"
+#if IS_ENABLED(CONFIG_SEC_EXT_THERMAL_MONITOR)
+#include <linux/pm_wakeup.h>
+#endif /* CONFIG_SEC_EXT_THERMAL_MONITOR */
 
 #define ADC_TM_STATUS1				0x08
 #define ADC_TM_STATUS_LOW_SET		0x09
@@ -81,6 +84,11 @@
 static struct adc_tm_reverse_scale_fn_adc7 adc_tm_rscale_fn[] = {
 	[SCALE_R_ABSOLUTE] = {adc_tm_absolute_rthr_adc7},
 };
+
+#if IS_ENABLED(CONFIG_SEC_EXT_THERMAL_MONITOR)
+static struct wakeup_source *adctm_ws;
+static int wlock_init = 0;
+#endif /* CONFIG_SEC_EXT_THERMAL_MONITOR */
 
 static int32_t adc_tm7_conv_req(struct adc_tm_chip *chip)
 {
@@ -512,6 +520,9 @@ static int adc_tm7_set_trip_temp(struct adc_tm_sensor *sensor,
 	struct adc_tm_chip *chip;
 	struct adc_tm_config tm_config;
 	int ret;
+#if IS_ENABLED(CONFIG_SEC_EXT_THERMAL_MONITOR)
+	int64_t remap_high_thr_voltage = 0, remap_low_thr_voltage = 0;
+#endif /* CONFIG_SEC_EXT_THERMAL_MONITOR */
 
 	if (!sensor)
 		return -EINVAL;
@@ -534,6 +545,48 @@ static int adc_tm7_set_trip_temp(struct adc_tm_sensor *sensor,
 	pr_debug("requested a low temp- %d and high temp- %d\n",
 			tm_config.low_thr_temp, tm_config.high_thr_temp);
 	adc_tm_scale_therm_voltage_100k_adc7(&tm_config);
+
+#if IS_ENABLED(CONFIG_SEC_EXT_THERMAL_MONITOR)
+	if (sensor->adc_ch == USB_THM_CH || sensor->adc_ch == WPC_THM_CH) {
+		pr_info("%s: adc_ch(0x%x) low_temp: %d, high_temp: %d\n",
+			__func__, sensor->adc_ch, low_temp, high_temp);
+
+		/* NOTE: Remap trip threshold voltage for adc-tm interrupt
+		 * if remap_voltage is nonzero, then reset threshold voltage. 
+		 * Otherwise, it means sec_adc driver is not ready, so skip it.
+		 */
+		if (high_temp != INT_MAX) {
+			remap_low_thr_voltage =
+				sec_get_thr_voltage(sensor->adc_ch, (high_temp/100));
+
+			if (remap_low_thr_voltage) {
+				tm_config.low_thr_voltage =
+					remap_low_thr_voltage * MAX_CODE_VOLT;
+				tm_config.low_thr_voltage =
+					div64_s64(tm_config.low_thr_voltage, ADC_HC_VDD_REF);
+
+				pr_info("%s: adc_ch(0x%x) high_temp:%d (adc:%d) - voltage:%d\n",
+					__func__, sensor->adc_ch, high_temp, 
+					remap_low_thr_voltage, tm_config.low_thr_voltage);
+			}
+		}
+		if (low_temp != INT_MIN) {
+			remap_high_thr_voltage =
+				sec_get_thr_voltage(sensor->adc_ch, (low_temp/100)) + 1;
+
+			if (remap_high_thr_voltage) {
+				tm_config.high_thr_voltage =
+					remap_high_thr_voltage * MAX_CODE_VOLT;
+				tm_config.high_thr_voltage =
+					div64_s64(tm_config.high_thr_voltage, ADC_HC_VDD_REF);
+
+				pr_info("%s: adc_ch(0x%x) low_temp:%d (adc:%d) - voltage:%d\n",
+					__func__, sensor->adc_ch, low_temp,
+					remap_high_thr_voltage, tm_config.high_thr_voltage);
+			}
+		}
+	}
+#endif /* CONFIG_SEC_EXT_THERMAL_MONITOR */
 
 	pr_debug("high_thr:0x%llx, low_thr:0x%llx\n",
 		tm_config.high_thr_voltage, tm_config.low_thr_voltage);
@@ -669,6 +722,21 @@ static irqreturn_t adc_tm7_handler(int irq, void *data)
 				pr_err("Invalid temperature reading\n");
 				continue;
 			}
+#if IS_ENABLED(CONFIG_SEC_EXT_THERMAL_MONITOR)
+			if (chip->sensor[i].adc_ch == USB_THM_CH
+						||chip->sensor[i].adc_ch == WPC_THM_CH) {
+				/* Get temp by vadc to avoid irq storm due to invalid temp */
+				ret = adc_tm_get_temp_vadc(&chip->sensor[i], &temp);
+				pr_info("%s: adc_ch(0x%x) - temp: %d, Lower: %d, Upper: %d\n",
+					__func__, chip->sensor[i].adc_ch, temp, lower_set, upper_set);
+
+				/* Acquire wakelock for 5 secs to prevent entering sleep
+				 * before handling thermal notification in user-space
+				 */
+				 if (!adctm_ws->active)
+					 __pm_wakeup_event(adctm_ws, msecs_to_jiffies(5000));
+			}
+#endif /* CONFIG_SEC_EXT_THERMAL_MONITOR */
 			of_thermal_handle_trip_temp(chip->dev,
 				chip->sensor[i].tzd, temp);
 		} else {
@@ -748,6 +816,10 @@ static int adc_tm7_init(struct adc_tm_chip *chip, uint32_t dt_chans)
 
 	mutex_init(&chip->adc_mutex_lock);
 
+#if IS_ENABLED(CONFIG_SEC_EXT_THERMAL_MONITOR)
+	if(!wlock_init++)
+		adctm_ws = wakeup_source_register(NULL, "adctm_lock");
+#endif /* CONFIG_SEC_EXT_THERMAL_MONITOR */
 	return ret;
 }
 

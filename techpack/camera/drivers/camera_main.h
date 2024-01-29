@@ -70,13 +70,18 @@ extern struct platform_driver cam_custom_hw_sub_mod_driver;
 extern struct platform_driver cam_custom_csid_driver;
 extern struct platform_driver custom_driver;
 #endif
+#ifdef CONFIG_SAMSUNG_SBI
+extern struct platform_driver cam_custom_csid_driver;
+extern struct platform_driver cam_sbi_driver;
+extern struct platform_driver cam_sbi_hw_driver;
+#endif
 
 /*
  * Drivers to be bound by component framework in this order with
  * CRM as master
  */
 static struct platform_driver *const cam_component_drivers[] = {
-/* BASE */
+	/* BASE */
 	&cam_sync_driver,
 	&cam_smmu_driver,
 	&cam_cpas_driver,
@@ -137,6 +142,11 @@ static struct platform_driver *const cam_component_drivers[] = {
 	&cam_custom_hw_sub_mod_driver,
 	&cam_custom_csid_driver,
 	&custom_driver,
+#endif
+#ifdef CONFIG_SAMSUNG_SBI
+	&cam_custom_csid_driver,
+	&cam_sbi_driver,
+	&cam_sbi_hw_driver,
 #endif
 };
 

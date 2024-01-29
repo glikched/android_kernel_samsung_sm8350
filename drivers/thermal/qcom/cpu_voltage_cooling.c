@@ -14,6 +14,9 @@
 #include <linux/cpu.h>
 #include <linux/pm_opp.h>
 #include <linux/pm_qos.h>
+#ifdef CONFIG_CPU_FREQ_LIMIT
+#include <linux/cpufreq_limit.h>
+#endif
 
 #define CPU_MAP_CT 2
 #define CC_CDEV_DRIVER "CPU-voltage-cdev"
@@ -129,12 +132,19 @@ fetch_err_exit:
 	return -EINVAL;
 }
 
+#ifdef CONFIG_CPU_FREQ_LIMIT
+/* voltage based freq table */
+extern unsigned int cflm_vf_tbl[NUM_THM_CPUS][NUM_MAX_FREQS];
+#endif
 static int build_unified_table(struct cc_limits_data *cc_cdev,
 		struct limits_freq_table **table, int *table_ct,
 		int *cpu, int cpu_ct)
 {
 	struct limits_freq_map *freq_map = NULL;
 	int idx = 0, idy = 0, idz = 0, min_idx = 0, max_v = 0, max_idx = 0;
+#ifdef CONFIG_CPU_FREQ_LIMIT
+	int cflm_i = 0;
+#endif
 
 	for (idx = 0; idx < cpu_ct; idx++) {
 		int table_v = table[idx][table_ct[idx] - 1].volt;
@@ -169,6 +179,14 @@ static int build_unified_table(struct cc_limits_data *cc_cdev,
 		freq_map[idz].frequency[1] = table[min_idx][idy].frequency;
 		pr_info("freq1:%u freq2:%u\n", freq_map[idz].frequency[0],
 				freq_map[idz].frequency[1]);
+
+#ifdef CONFIG_CPU_FREQ_LIMIT
+		if (cflm_i < NUM_MAX_FREQS) {
+			cflm_vf_tbl[0][cflm_i] = table[max_idx][idx].frequency;
+			cflm_vf_tbl[1][cflm_i] = table[min_idx][idy].frequency;
+			cflm_i++;
+		}
+#endif
 	}
 
 	cc_cdev->map_freq = freq_map;

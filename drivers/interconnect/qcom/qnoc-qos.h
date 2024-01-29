@@ -40,6 +40,11 @@ struct qcom_icc_noc_ops {
 struct qos_config {
 	u32 prio;
 	u32 urg_fwd;
+#if defined(CONFIG_SAMSUNG_SBI)
+	bool shaping_en;
+	u32 shaping_low;
+	u32 shaping_high;
+#endif
 #ifndef CONFIG_INTERCONNECT_QCOM_RPMH
 	u32 bke_enable;
 #endif

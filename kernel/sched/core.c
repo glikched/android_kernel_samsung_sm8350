@@ -23,6 +23,8 @@
 #include "pelt.h"
 #include "walt/walt.h"
 
+#include <linux/sec_debug.h>
+
 #define CREATE_TRACE_POINTS
 #include <trace/events/sched.h>
 
@@ -31,7 +33,6 @@
 
 #undef CREATE_TRACE_POINTS
 #include <trace/hooks/sched.h>
-
 /*
  * Export tracepoints that act as a bare tracehook (ie: have no trace event
  * associated with them) to allow external modules to probe them.
@@ -1595,8 +1596,11 @@ static inline bool is_per_cpu_kthread(struct task_struct *p)
  */
 static inline bool is_cpu_allowed(struct task_struct *p, int cpu)
 {
-	if (!cpumask_test_cpu(cpu, p->cpus_ptr))
-		return false;
+#ifdef CONFIG_SEC_PERF_MANAGER
+	if (!p->drawing_flag)
+#endif
+		if (!cpumask_test_cpu(cpu, p->cpus_ptr))
+			return false;
 
 	if (is_per_cpu_kthread(p))
 		return cpu_online(cpu);
@@ -3889,7 +3893,7 @@ void scheduler_tick(void)
 #ifdef CONFIG_SMP
 	rq_lock(rq, &rf);
 	if (idle_cpu(cpu) && is_reserved(cpu) && !rq->active_balance)
-		clear_reserved(cpu);
+ 		clear_reserved(cpu);
 	rq_unlock(rq, &rf);
 #endif
 
@@ -4371,7 +4375,9 @@ static void __sched notrace __schedule(bool preempt)
 		++*switch_count;
 
 		trace_sched_switch(preempt, prev, next);
-
+#if IS_ENABLED(CONFIG_SEC_DEBUG_SCHED_LOG)
+		sec_debug_task_sched_log(cpu, preempt, next, prev);
+#endif
 		/* Also unlocks the rq: */
 		rq = context_switch(rq, prev, next, &rf);
 	} else {

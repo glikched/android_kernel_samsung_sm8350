@@ -296,6 +296,11 @@ static int _sde_power_data_bus_set_quota(
 
 	in_ab_quota = div_u64(in_ab_quota, paths);
 
+#if defined(CONFIG_DISPLAY_SAMSUNG)
+	pdbus->in_ab_quota = in_ab_quota;
+	pdbus->in_ib_quota = in_ib_quota;
+#endif
+
 	SDE_ATRACE_BEGIN("msm_bus_scale_req");
 	for (i = 0; i < paths; i++) {
 		if (pdbus->data_bus_hdl[i]) {

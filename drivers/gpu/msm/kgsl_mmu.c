@@ -9,6 +9,10 @@
 #include "kgsl_mmu.h"
 #include "kgsl_sharedmem.h"
 
+#if defined(CONFIG_DISPLAY_SAMSUNG)
+#include <linux/delay.h>
+#endif
+
 static void pagetable_remove_sysfs_objects(struct kgsl_pagetable *pagetable);
 
 static void _deferred_destroy(struct work_struct *ws)
@@ -376,6 +380,9 @@ kgsl_mmu_map(struct kgsl_pagetable *pagetable,
 {
 	int size;
 	struct kgsl_device *device = KGSL_MMU_DEVICE(pagetable->mmu);
+#if defined(CONFIG_DISPLAY_SAMSUNG)
+	int retry_cnt;
+#endif
 
 	if (!memdesc->gpuaddr)
 		return -EINVAL;
@@ -390,6 +397,22 @@ kgsl_mmu_map(struct kgsl_pagetable *pagetable,
 		int ret;
 
 		ret = pagetable->pt_ops->mmu_map(pagetable, memdesc);
+
+#if defined(CONFIG_DISPLAY_SAMSUNG)
+		if (ret != 0 && !in_interrupt()) {
+			for (retry_cnt = 0; retry_cnt < 62 ; retry_cnt++) {
+				/* To wait free page by memory reclaim*/
+				usleep_range(16000, 16000);
+
+				pr_err("kgsl_mmu_map failed : retry (%d) ret : %d\n", retry_cnt, ret);
+				
+				ret = pagetable->pt_ops->mmu_map(pagetable, memdesc);
+				if (ret == 0)
+					break;
+			}
+		}
+#endif
+
 		if (ret)
 			return ret;
 
@@ -520,6 +543,7 @@ int kgsl_mmu_pagetable_get_context_bank(struct kgsl_pagetable *pagetable)
 	if (PT_OP_VALID(pagetable, get_context_bank))
 		return pagetable->pt_ops->get_context_bank(pagetable);
 
+	pr_err("return -ENOENT at <%s: %d>", __FILE__, __LINE__);
 	return -ENOENT;
 }
 

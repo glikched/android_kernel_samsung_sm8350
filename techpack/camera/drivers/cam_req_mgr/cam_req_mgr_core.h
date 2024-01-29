@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2016-2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2016-2020, The Linux Foundation. All rights reserved.
  */
 #ifndef _CAM_REQ_MGR_CORE_H_
 #define _CAM_REQ_MGR_CORE_H_
@@ -13,7 +13,7 @@
 #define CAM_REQ_MGR_MAX_LINKED_DEV     16
 #define MAX_REQ_SLOTS                  48
 
-#define CAM_REQ_MGR_WATCHDOG_TIMEOUT          1000
+#define CAM_REQ_MGR_WATCHDOG_TIMEOUT          5000
 #define CAM_REQ_MGR_WATCHDOG_TIMEOUT_DEFAULT  5000
 #define CAM_REQ_MGR_WATCHDOG_TIMEOUT_MAX      50000
 #define CAM_REQ_MGR_SCHED_REQ_TIMEOUT         1000
@@ -41,16 +41,6 @@
 #define VERSION_1  1
 #define VERSION_2  2
 #define CAM_REQ_MGR_MAX_TRIGGERS   2
-
-/**
- * enum crm_req_eof_trigger_type
- * @codes: to identify which type of eof trigger for next slot
- */
-enum crm_req_eof_trigger_type {
-	CAM_REQ_EOF_TRIGGER_NONE,
-	CAM_REQ_EOF_TRIGGER_NOT_APPLY,
-	CAM_REQ_EOF_TRIGGER_APPLIED,
-};
 
 /**
  * enum crm_workq_task_type
@@ -115,7 +105,6 @@ enum crm_req_state {
  * NO_REQ     : empty slot
  * REQ_ADDED  : new entry in slot
  * REQ_PENDING    : waiting for next trigger to apply
- * REQ_READY      : req is ready
  * REQ_APPLIED    : req is sent to all devices
  * INVALID    : invalid state
  */
@@ -123,7 +112,6 @@ enum crm_slot_status {
 	CRM_SLOT_STATUS_NO_REQ,
 	CRM_SLOT_STATUS_REQ_ADDED,
 	CRM_SLOT_STATUS_REQ_PENDING,
-	CRM_SLOT_STATUS_REQ_READY,
 	CRM_SLOT_STATUS_REQ_APPLIED,
 	CRM_SLOT_STATUS_INVALID,
 };
@@ -198,34 +186,34 @@ struct cam_req_mgr_apply {
  * struct crm_tbl_slot_special_ops
  * @dev_hdl         : Device handle who requested for special ops
  * @apply_at_eof    : Boolean Identifier for request to be applied at EOF
+ * @skip_next_frame : Flag to drop the frame after skip_before_apply frame
  * @is_applied      : Flag to identify if request is already applied to device
  *                    in previous frame
  */
 struct crm_tbl_slot_special_ops {
 	int32_t dev_hdl;
 	bool apply_at_eof;
+	bool skip_next_frame;
 	bool is_applied;
 };
 
 /**
  * struct cam_req_mgr_tbl_slot
- * @idx                 : slot index
- * @req_ready_map       : mask tracking which all devices have request ready
- * @state               : state machine for life cycle of a slot
- * @inject_delay_at_sof : insert extra bubbling for flash type of use cases
- * @inject_delay_at_eof : insert extra bubbling for flash type of use cases
- * @ops                 : special operation for the table slot
- *                        e.g.
- *                        skip_next frame: in case of applying one device
- *                        and skip others
- *                        apply_at_eof: device that needs to apply at EOF
+ * @idx             : slot index
+ * @req_ready_map   : mask tracking which all devices have request ready
+ * @state           : state machine for life cycle of a slot
+ * @inject_delay    : insert extra bubbling for flash type of use cases
+ * @ops             : special operation for the table slot
+ *                    e.g.
+ *                    skip_next frame: in case of applying one device
+ *                    and skip others
+ *                    apply_at_eof: device that needs to apply at EOF
  */
 struct cam_req_mgr_tbl_slot {
 	int32_t                                idx;
 	uint32_t                               req_ready_map;
 	enum crm_req_state                     state;
-	uint32_t                               inject_delay_at_sof;
-	uint32_t                               inject_delay_at_eof;
+	uint32_t                               inject_delay;
 	struct  crm_tbl_slot_special_ops       ops;
 };
 
@@ -264,6 +252,7 @@ struct cam_req_mgr_req_tbl {
  * @recover            : if user enabled recovery for this request.
  * @req_id             : mask tracking which all devices have request ready
  * @sync_mode          : Sync mode in which req id in this slot has to applied
+ * @err_reported       : Error has been reported on this slot
  * @additional_timeout : Adjusted watchdog timeout value associated with
  * this request
  */
@@ -274,6 +263,7 @@ struct cam_req_mgr_slot {
 	int32_t               recover;
 	int64_t               req_id;
 	int32_t               sync_mode;
+	bool                  err_reported;
 	int32_t               additional_timeout;
 };
 
@@ -354,6 +344,9 @@ struct cam_req_mgr_connected_device {
  * @parent               : pvt data - link's parent is session
  * @lock                 : mutex lock to guard link data operations
  * @link_state_spin_lock : spin lock to protect link state variable
+ * @subscribe_event      : irqs that link subscribes, IFE should send
+ *                         notification to CRM at those hw events.
+ * @trigger_mask         : mask on which irq the req is already applied
  * @sync_link            : array of pointer to the sync link for synchronization
  * @num_sync_links       : num of links sync associated with this link
  * @sync_link_sof_skip   : flag determines if a pkt is not available for a given
@@ -372,6 +365,8 @@ struct cam_req_mgr_connected_device {
  *                         other link
  * @retry_cnt            : Counter that tracks number of attempts to apply
  *                         the same req
+ * @wq_retry_cnt         : Counter that tracks number of attempts to apply
+ *                         the same req including wq delays
  * @is_shutdown          : Flag to indicate if link needs to be disconnected
  *                         as part of shutdown.
  * @sof_timestamp_value  : SOF timestamp value
@@ -382,8 +377,7 @@ struct cam_req_mgr_connected_device {
  * @eof_event_cnt        : Atomic variable to track the number of EOF requests
  * @skip_init_frame      : skip initial frames crm_wd_timer validation in the
  *                         case of long exposure use case
- * @last_sof_trigger_jiffies : Record the jiffies of last sof trigger jiffies
- * @wq_congestion        : Indicates if WQ congestion is detected or not
+ * @last_applied_jiffies : Record the jiffies of last applied req
  */
 struct cam_req_mgr_core_link {
 	int32_t                              link_hdl;
@@ -399,6 +393,8 @@ struct cam_req_mgr_core_link {
 	void                                *parent;
 	struct mutex                         lock;
 	spinlock_t                           link_state_spin_lock;
+	uint32_t                             subscribe_event;
+	uint32_t                             trigger_mask;
 	struct cam_req_mgr_core_link
 			*sync_link[MAXIMUM_LINKS_PER_SESSION - 1];
 	int32_t                              num_sync_links;
@@ -411,16 +407,15 @@ struct cam_req_mgr_core_link {
 	bool                                 in_msync_mode;
 	int64_t                              initial_sync_req;
 	uint32_t                             retry_cnt;
+	uint32_t                             wq_retry_cnt;	
 	bool                                 is_shutdown;
 	uint64_t                             sof_timestamp;
 	uint64_t                             prev_sof_timestamp;
 	bool                                 dual_trigger;
-	uint32_t trigger_cnt[CAM_REQ_MGR_MAX_TRIGGERS]
-				[CAM_TRIGGER_MAX_POINTS + 1];
+	uint32_t    trigger_cnt[CAM_REQ_MGR_MAX_TRIGGERS];
 	atomic_t                             eof_event_cnt;
 	bool                                 skip_init_frame;
-	uint64_t                             last_sof_trigger_jiffies;
-	bool                                 wq_congestion;
+	uint64_t                             last_applied_jiffies;
 };
 
 /**

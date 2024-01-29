@@ -41,7 +41,6 @@ static DEFINE_PER_CPU(bool, cpu_is_idle);
 static DEFINE_PER_CPU(bool, cpu_is_hp);
 static DEFINE_MUTEX(perfevent_lock);
 #endif
-
 enum event_idx {
 	INST_EVENT,
 	CYC_EVENT,

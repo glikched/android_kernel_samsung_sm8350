@@ -74,6 +74,7 @@ struct bluetooth_power_platform_data {
 	char compatible[32]; /*Bluetooth SoC name */
 	int num_vregs;
 	struct btpower_tcs_table_info tcs_table_info;
+	int gpio_xFEM_detect;					 /* SS HW gpio for xFEM detect */
 };
 
 int btpower_register_slimdev(struct device *dev);
@@ -86,6 +87,8 @@ int btpower_get_chipset_version(void);
 #define BT_CMD_CHECK_SW_CTRL	0xbfb0
 #define BT_CMD_GETVAL_POWER_SRCS	0xbfb1
 #define BT_CMD_SET_IPA_TCS_INFO  0xbfc0
+//SS HW gpio for xFEM detect
+#define BT_CMD_GET_HW_GPIO_INFO  0xbff0
 
 #define TCS_CMD_IO_ADDR_OFFSET 0x4
 

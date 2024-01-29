@@ -1455,12 +1455,20 @@ struct task_struct {
 	/* Used by LSM modules for access restriction: */
 	void				*security;
 #endif
-
+#ifdef CONFIG_SEC_PERF_MANAGER
+	int drawing_flag;
+	int drawing_mig_boost;
+#endif
 #ifdef CONFIG_GCC_PLUGIN_STACKLEAK
 	unsigned long			lowest_stack;
 	unsigned long			prev_lowest_stack;
 #endif
 
+	/*
+	 * [0] : sec_debug_wait.type
+	 * [1] : sec_debug_wait.data
+	 * [2] : Used by FIVE project
+	 */
 	ANDROID_VENDOR_DATA_ARRAY(1, 3);
 
 	ANDROID_KABI_RESERVE(1);

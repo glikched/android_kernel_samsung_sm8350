@@ -20,6 +20,18 @@
 #include "input-event-codes.h"
 
 /*
+ * sys/class/sec/tsp/support_feature
+ * bit value should be made a promise with InputFramework.
+ */
+#define INPUT_FEATURE_ENABLE_SETTINGS_AOT	(1 << 0) /* Double tap wakeup settings */
+#define INPUT_FEATURE_ENABLE_PRESSURE		(1 << 1) /* homekey pressure */
+#define INPUT_FEATURE_ENABLE_SYNC_RR120		(1 << 2) /* sync reportrate 120hz */
+#define INPUT_FEATURE_ENABLE_VRR		(1 << 3) /* variable refresh rate (support 240hz) */
+
+#define INPUT_FEATURE_SUPPORT_OPEN_SHORT_TEST		(1 << 8) /* open/short test support */
+#define INPUT_FEATURE_SUPPORT_MIS_CALIBRATION_TEST	(1 << 9) /* mis-calibration test support */
+
+/*
  * The event structure itself
  * Note that __USE_TIME_BITS64 is defined by libc based on
  * application's request to use 64 bit time_t.
@@ -238,6 +250,12 @@ struct input_mask {
 #define EVIOCSMASK		_IOW('E', 0x93, struct input_mask)	/* Set event-masks */
 
 #define EVIOCSCLOCKID		_IOW('E', 0xa0, int)			/* Set clockid to be used for timestamps */
+
+/*
+ * Switch events
+ */
+#define SW_FLIP                 0x15  /* set = flip cover open, close*/
+#define SW_CERTIFYHALL          0x1b  /* set = certify_hall attach/detach */
 
 /*
  * IDs.

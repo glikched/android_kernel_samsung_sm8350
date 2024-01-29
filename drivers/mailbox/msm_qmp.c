@@ -406,7 +406,6 @@ static int qmp_send_data(struct mbox_chan *chan, void *data)
 		spin_unlock_irqrestore(&mbox->tx_lock, flags);
 		return -EINVAL;
 	}
-
 	memcpy32_toio(addr + sizeof(pkt->size), pkt->data, pkt->size);
 	iowrite32(pkt->size, addr);
 	/* readback to ensure write reflects in msgram */

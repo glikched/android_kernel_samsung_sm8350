@@ -34,6 +34,11 @@
 #include "msm-pcm-q6-v2.h"
 #include "msm-pcm-routing-v2.h"
 
+#include <linux/msm_pcie.h>
+#ifdef CONFIG_DSP_SLEEP_RECOVERY
+#include <soc/qcom/subsystem_restart.h>
+#endif /* CONFIG_DSP_SLEEP_RECOVERY */
+
 
 #define DRV_NAME "msm-pcm-q6-noirq"
 
@@ -267,6 +272,13 @@ static int msm_pcm_open(struct snd_pcm_substream *substream)
 	prtd->dsp_cnt = 0;
 	prtd->set_channel_map = false;
 	runtime->private_data = prtd;
+#ifdef CONFIG_SEC_PCIE_L1SS
+	pr_info("%s: sec_pcie_l1ss_disable()\n", __func__);
+	sec_pcie_l1ss_disable(L1SS_AUDIO);
+#endif
+#ifdef CONFIG_DSP_SLEEP_RECOVERY
+	subsys_set_mmap_audio_state(true);
+#endif
 	return 0;
 
 fail_cmd:
@@ -627,7 +639,11 @@ static int msm_pcm_prepare(struct snd_pcm_substream *substream)
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	struct msm_audio *prtd = runtime->private_data;
 	struct asm_softvolume_params softvol = {
+#ifdef CONFIG_SND_SOC_SAMSUNG_AUDIO
+		.period = SOFT_VOLUME_MMAP_PERIOD,
+#else
 		.period = SOFT_VOLUME_PERIOD,
+#endif
 		.step = SOFT_VOLUME_STEP,
 		.rampingcurve = SOFT_VOLUME_CURVE_LINEAR,
 	};
@@ -711,6 +727,13 @@ static int msm_pcm_close(struct snd_pcm_substream *substream)
 	kfree(prtd);
 	runtime->private_data = NULL;
 	mutex_unlock(&pdata->lock);
+#ifdef CONFIG_SEC_PCIE_L1SS
+	pr_info("%s: sec_pcie_l1ss_enable()\n", __func__);
+	sec_pcie_l1ss_enable(L1SS_AUDIO);
+#endif
+#ifdef CONFIG_DSP_SLEEP_RECOVERY
+	subsys_set_mmap_audio_state(false);
+#endif
 
 	return 0;
 }
@@ -1155,7 +1178,7 @@ static int msm_pcm_capture_app_type_cfg_ctl_put(struct snd_kcontrol *kcontrol,
 	cfg_data.acdb_dev_id = ucontrol->value.integer.value[1];
 	if (ucontrol->value.integer.value[2] != 0)
 		cfg_data.sample_rate = ucontrol->value.integer.value[2];
-	pr_debug("%s: fe_id- %llu session_type- %d be_id- %d app_type- %d acdb_dev_id- %d sample_rate- %d\n",
+	pr_info("%s: fe_id- %llu session_type- %d be_id- %d app_type- %d acdb_dev_id- %d sample_rate- %d\n",
 		__func__, fe_id, session_type, be_id,
 		cfg_data.app_type, cfg_data.acdb_dev_id, cfg_data.sample_rate);
 	ret = msm_pcm_routing_reg_stream_app_type_cfg(fe_id, session_type,

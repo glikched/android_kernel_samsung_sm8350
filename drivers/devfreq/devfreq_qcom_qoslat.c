@@ -65,7 +65,6 @@ static int update_qos_level(struct device *dev)
 	snprintf(mbox_msg, MAX_MSG_LEN, "{class: ddr, perfmode: %s}", qos_msg);
 	pkt.size = MAX_MSG_LEN;
 	pkt.data = mbox_msg;
-
 	ret = mbox_send_message(d->mbox, &pkt);
 	if (ret < 0) {
 		dev_err(dev, "Failed to send mbox message: %d\n", ret);

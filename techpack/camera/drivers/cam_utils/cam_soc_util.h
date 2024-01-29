@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2015-2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2015-2020, The Linux Foundation. All rights reserved.
  */
 
 #ifndef _CAM_SOC_UTIL_H_
@@ -160,7 +160,6 @@ struct cam_soc_gpio_data {
  * @clk_level_valid:        Indicates whether corresponding level is valid
  * @scl_clk_count:          Number of scalable clocks present
  * @scl_clk_idx:            Index of scalable clocks
- * @applied_src_clk_rate    Current clock rate of the core source clk
  * @gpio_data:              Pointer to gpio info
  * @pinctrl_info:           Pointer to pinctrl info
  * @dentry:                 Debugfs entry
@@ -207,7 +206,6 @@ struct cam_hw_soc_info {
 	int32_t                         clk_rate[CAM_MAX_VOTE][CAM_SOC_MAX_CLK];
 	int32_t                         prev_clk_level;
 	int32_t                         src_clk_idx;
-	unsigned long                   applied_src_clk_rate;
 	bool                            clk_level_valid[CAM_MAX_VOTE];
 	int32_t                         scl_clk_count;
 	int32_t                         scl_clk_idx[CAM_SOC_MAX_CLK];
@@ -408,19 +406,6 @@ long cam_soc_util_get_clk_round_rate(struct cam_hw_soc_info *soc_info,
 	uint32_t clk_index, unsigned long clk_rate);
 
 /**
- * cam_soc_util_get_clk_rate()
- *
- * @brief:              Get the rate on the source clock.
- * @clk:                Src clock reference pointer to get clock rate
- * @clk_name:           Name of src clock
- * @clk_rate:           Clock rate associated with the src clk
- *
- * @return:             success or failure
- */
-int cam_soc_util_get_clk_rate(struct clk *clk, const char *clk_name,
-	uint32_t *clk_rate);
-
-/**
  * cam_soc_util_set_src_clk_rate()
  *
  * @brief:              Set the rate on the source clock.
@@ -470,12 +455,11 @@ int cam_soc_util_clk_put(struct clk **clk);
  * @clk:                Clock that needs to be turned ON
  * @clk_name:           Clocks name associated with clk
  * @clk_rate:           Clocks rate associated with clk
- * @applied_clock_rate  Final Clock rate applied to the clk
  *
  * @return:             Success or failure
  */
 int cam_soc_util_clk_enable(struct clk *clk, const char *clk_name,
-	int32_t clk_rate, unsigned long *applied_clock_rate);
+	int32_t clk_rate);
 
 /**
  * cam_soc_util_set_clk_rate_level()
@@ -486,12 +470,11 @@ int cam_soc_util_clk_enable(struct clk *clk, const char *clk_name,
  *
  * @soc_info:           Device soc information
  * @clk_level:          Clock level number to set
- * @do_not_set_src_clk: If true, set clock rates except the src clk
  *
  * @return:             Success or failure
  */
 int cam_soc_util_set_clk_rate_level(struct cam_hw_soc_info *soc_info,
-	enum cam_vote_level clk_level, bool do_not_set_src_clk);
+	enum cam_vote_level clk_level);
 
 /**
  * cam_soc_util_clk_disable()
@@ -677,10 +660,6 @@ int cam_soc_util_clk_enable_default(struct cam_hw_soc_info *soc_info,
 int cam_soc_util_get_clk_level(struct cam_hw_soc_info *soc_info,
 	int64_t clk_rate, int clk_idx, int32_t *clk_lvl);
 
-unsigned long cam_soc_util_get_clk_rate_applied(
-	struct cam_hw_soc_info *soc_info, int32_t index, bool is_src,
-	enum cam_vote_level clk_level);
-
 /* Callback to get reg space data for specific HW */
 typedef int (*cam_soc_util_regspace_data_cb)(uint32_t reg_base_type,
 	void *ctx, struct cam_hw_soc_info **soc_info_ptr,
@@ -720,4 +699,10 @@ int cam_soc_util_reg_dump_to_cmd_buf(void *ctx,
  */
 int cam_soc_util_print_clk_freq(struct cam_hw_soc_info *soc_info);
 
+#if defined(CONFIG_SEC_P3Q_PROJECT)
+int cam_soc_util_force_regulator_disable(struct regulator *rgltr,
+	const char *rgltr_name,
+	uint32_t rgltr_min_volt, uint32_t rgltr_max_volt,
+	uint32_t rgltr_op_mode, uint32_t rgltr_delay);
+#endif
 #endif /* _CAM_SOC_UTIL_H_ */

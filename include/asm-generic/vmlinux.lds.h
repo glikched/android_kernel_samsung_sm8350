@@ -353,6 +353,22 @@
 	__end_ro_after_init = .;
 #endif
 
+#ifdef CONFIG_FASTUH
+#define FASTUH_RO_SECTION						\
+	. = ALIGN(4096);						\
+	.fastuh_bss       : AT(ADDR(.fastuh_bss) - LOAD_OFFSET) {	\
+		*(.fastuh_bss.page_aligned)				\
+		*(.fastuh_bss)						\
+	} = 0								\
+									\
+	.fastuh_ro        : AT(ADDR(.fastuh_ro) - LOAD_OFFSET) {	\
+		*(.rkp_ro)						\
+		*(.kdp_ro)						\
+	}
+#else
+#define FASTUH_RO_SECTION
+#endif
+
 /*
  * Read only Data
  */
@@ -372,6 +388,9 @@
 	.rodata1          : AT(ADDR(.rodata1) - LOAD_OFFSET) {		\
 		*(.rodata1)						\
 	}								\
+									\
+	/* FASTUH */					\
+	FASTUH_RO_SECTION				\
 									\
 	/* PCI quirks */						\
 	.pci_fixup        : AT(ADDR(.pci_fixup) - LOAD_OFFSET) {	\
@@ -869,6 +888,17 @@
 		KEEP(*(.con_initcall.init))				\
 		__con_initcall_end = .;
 
+#ifdef CONFIG_SEC_KUNIT
+/* Alignment must be consistent with (test_module *) in include/kunit/test.h */
+#define KUNIT_TEST_MODULES						\
+		. = ALIGN(8);						\
+		__test_modules_start = .;				\
+		KEEP(*(.test_modules))					\
+		__test_modules_end = .;
+#else
+#define KUNIT_TEST_MODULES
+#endif
+
 #ifdef CONFIG_BLK_DEV_INITRD
 #define INIT_RAM_FS							\
 	. = ALIGN(4);							\
@@ -1037,6 +1067,7 @@
 		INIT_CALLS						\
 		CON_INITCALL						\
 		INIT_RAM_FS						\
+		KUNIT_TEST_MODULES					\
 	}
 
 #define BSS_SECTION(sbss_align, bss_align, stop_align)			\

@@ -190,6 +190,12 @@ page_info *alloc_largest_available(struct ion_msm_system_heap *heap,
 			continue;
 		if (max_order < orders[i])
 			continue;
+#ifdef CONFIG_HUGEPAGE_POOL
+		if (orders[i] == HUGEPAGE_ORDER &&
+		    !is_hugepage_allowed(current, orders[i], true, HPAGE_ION))
+			continue;
+#endif
+
 		from_pool = !(buffer->flags & ION_FLAG_POOL_FORCE_ALLOC);
 		page = alloc_buffer_page(heap, buffer, orders[i], &from_pool);
 		if (IS_ERR(page))

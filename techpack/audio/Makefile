@@ -19,7 +19,21 @@ ifeq ($(CONFIG_ARCH_KONA), y)
 include $(srctree)/techpack/audio/config/konaauto.conf
 endif
 ifeq ($(CONFIG_ARCH_LAHAINA), y)
+ifeq ($(PROJECT_NAME),$(filter $(PROJECT_NAME),o1q t2q p3q))
+include $(srctree)/techpack/audio/config/lahaina_palette.conf
+else ifeq ($(PROJECT_NAME),$(filter $(PROJECT_NAME),q2q))
+include $(srctree)/techpack/audio/config/lahaina_nexttop.conf
+else ifeq ($(PROJECT_NAME),$(filter $(PROJECT_NAME),b2q))
+include $(srctree)/techpack/audio/config/lahaina_b2.conf
+else ifeq ($(PROJECT_NAME),$(filter $(PROJECT_NAME),r9q))
+include $(srctree)/techpack/audio/config/lahaina_r9.conf
+else ifeq ($(PROJECT_NAME),$(filter $(PROJECT_NAME),v2q))
+include $(srctree)/techpack/audio/config/lahaina_v2.conf
+else ifeq ($(PROJECT_NAME),$(filter $(PROJECT_NAME),m44x))
+include $(srctree)/techpack/audio/config/lahaina_m44.conf
+else
 include $(srctree)/techpack/audio/config/lahainaauto.conf
+endif
 endif
 ifeq ($(CONFIG_ARCH_HOLI), y)
 include $(srctree)/techpack/audio/config/holiauto.conf
@@ -67,8 +81,28 @@ LINUXINCLUDE    += \
                 -include $(srctree)/techpack/audio/config/konaautoconf.h
 endif
 ifeq ($(CONFIG_ARCH_LAHAINA), y)
+ifeq ($(PROJECT_NAME),$(filter $(PROJECT_NAME),o1q t2q p3q))
+LINUXINCLUDE    += \
+                -include $(srctree)/techpack/audio/config/lahaina_palette.h
+else ifeq ($(PROJECT_NAME),$(filter $(PROJECT_NAME),q2q))
+LINUXINCLUDE    += \
+                -include $(srctree)/techpack/audio/config/lahaina_nexttop.h
+else ifeq ($(PROJECT_NAME),$(filter $(PROJECT_NAME),b2q))
+LINUXINCLUDE    += \
+                -include $(srctree)/techpack/audio/config/lahaina_b2.h
+else ifeq ($(PROJECT_NAME),$(filter $(PROJECT_NAME),r9q))
+LINUXINCLUDE	+= \
+                -include $(srctree)/techpack/audio/config/lahaina_r9.h
+else ifeq ($(PROJECT_NAME),$(filter $(PROJECT_NAME),v2q))
+LINUXINCLUDE	+= \
+                -include $(srctree)/techpack/audio/config/lahaina_v2.h
+else ifeq ($(PROJECT_NAME),$(filter $(PROJECT_NAME),m44x))
+LINUXINCLUDE	+= \
+                -include $(srctree)/techpack/audio/config/lahaina_m44.h
+else
 LINUXINCLUDE    += \
                 -include $(srctree)/techpack/audio/config/lahainaautoconf.h
+endif
 endif
 ifeq ($(CONFIG_ARCH_HOLI), y)
 LINUXINCLUDE    += \

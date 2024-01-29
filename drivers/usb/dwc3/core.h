@@ -29,6 +29,9 @@
 #include <linux/ulpi/interface.h>
 
 #include <linux/phy/phy.h>
+#if IS_ENABLED(CONFIG_USB_CHARGING_EVENT)
+#include "../../battery/common/sec_charging_common.h"
+#endif
 
 #define DWC3_MSG_MAX	500
 
@@ -865,6 +868,11 @@ enum gadget_state {
 	DWC3_GADGET_ACTIVE,
 };
 
+enum {
+	RELEASE	= 0,
+	NOTIFY	= 1,
+};
+
 /* TRB Length, PCM and Status */
 #define DWC3_TRB_SIZE_MASK	(0x00ffffff)
 #define DWC3_TRB_SIZE_LENGTH(n)	((n) & DWC3_TRB_SIZE_MASK)
@@ -1426,7 +1434,31 @@ struct dwc3 {
 	wait_queue_head_t	wait_linkstate;
 	struct work_struct	remote_wakeup_work;
 	bool			dual_port;
+
+#if IS_ENABLED(CONFIG_USB_CHARGING_EVENT)
+	struct work_struct	set_vbus_current_work;
+	int			vbus_current; /* 0 : 100mA, 1 : 500mA, 2: 900mA */
+#endif
+	struct delayed_work usb_event_work;
+	ktime_t rst_time_before;
+	ktime_t rst_time_first;
+	int rst_err_cnt;
+	bool rst_err_noti;
+	bool event_state;
+	bool acc_dev_status;
+	int usb_function_info;
 };
+
+#define GADGET_MTP	0x01
+#define GADGET_RNDIS	0x02
+#define GADGET_ACCESSORY	0x04
+#define GADGET_ADB	0x08
+#define GADGET_ACM	0x10
+#define GADGET_DM	0x20
+#define GADGET_MIDI	0x40
+#define GADGET_CONN_GADGET	0x80
+
+#define ERR_RESET_CNT	4
 
 #define INCRX_BURST_MODE 0
 #define INCRX_UNDEF_LENGTH_BURST_MODE 1

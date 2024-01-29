@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2017-2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2017-2020, The Linux Foundation. All rights reserved.
  */
 
 #include <linux/device.h>
@@ -9,6 +9,7 @@
 #include <linux/pm_opp.h>
 #include <linux/slab.h>
 #include <linux/module.h>
+#include <linux/interconnect.h>
 
 #include "cam_cpas_hw.h"
 #include "cam_cpas_hw_intf.h"
@@ -112,10 +113,6 @@ int cam_cpas_util_reg_update(struct cam_hw_info *cpas_hw,
 	if (reg_info->enable == false)
 		return 0;
 
-	if (reg_info->is_fuse_based &&
-		!cam_cpas_is_feature_supported(CAM_CPAS_RT_OT_FUSE, 0xFF, 0))
-		return 0;
-
 	reg_base_index = cpas_core->regbase_index[reg_base];
 	if (reg_base_index == -1)
 		return -EINVAL;
@@ -174,13 +171,24 @@ end:
 	return rc;
 }
 
+#if defined(CONFIG_SAMSUNG_SBI_QOS_TUNE)
+static int cam_cpas_util_vote_bus_client_bw(
+	struct cam_cpas_bus_client *bus_client, uint64_t ab, uint64_t ib,
+	bool camnoc_bw, uint64_t *applied_ab, uint64_t *applied_ib,
+	bool is_custom_enabled, uint32_t num_cameras,
+	bool uhd_running)
+#else
 static int cam_cpas_util_vote_bus_client_bw(
 	struct cam_cpas_bus_client *bus_client, uint64_t ab, uint64_t ib,
 	bool camnoc_bw, uint64_t *applied_ab, uint64_t *applied_ib)
+#endif
 {
 	int rc = 0;
 	uint64_t min_camnoc_ib_bw = CAM_CPAS_AXI_MIN_CAMNOC_IB_BW;
 	const struct camera_debug_settings *cam_debug = NULL;
+#if defined(CONFIG_SAMSUNG_SBI_QOS_TUNE)
+	uint64_t additional_ib = 0;
+#endif
 
 	if (!bus_client->valid) {
 		CAM_ERR(CAM_CPAS, "bus client: %s not valid",
@@ -205,6 +213,39 @@ static int cam_cpas_util_vote_bus_client_bw(
 		if ((ib > 0) && (ib < min_camnoc_ib_bw))
 			ib = min_camnoc_ib_bw;
 	} else {
+#if defined(CONFIG_SAMSUNG_SBI_QOS_TUNE)
+#if 0
+		size_t name_len = strlen(bus_client->common_data.name);
+
+		if (strnstr(bus_client->common_data.name, "cam_hf_0",
+			name_len)) {
+
+			if (is_custom_enabled) {
+				if (uhd_running && (num_cameras == 1)) {
+					if ((ib > 0) && (ib < 6936000000)) // Force DDR 2092MHz
+						ib = 6936000000;
+				} else if (num_cameras == 1) {
+					// if ((ib > 0) && (ib < 6321600000)) // Force DDR 1708MHz
+					// 	ib = 6321600000;
+					if ((ib > 0) && (ib < 6936000000)) // Force DDR 2092MHz
+						ib = 6936000000;
+				} else if (num_cameras > 1) {
+					if ((ib > 0) && (ib < 8472000000)) // Force DDR 2700MHz
+						ib = 8472000000;
+				}
+
+				if (ib > 0)
+					additional_ib = 8600000000; // push SHUB, MMNOC to '5' always
+
+				CAM_DBG(CAM_CPAS,
+					"Modifying ib : uhd_running=%d, num_cameras=%d, ib=%llu, additional_ib=%llu",
+					uhd_running, num_cameras, ib,
+					additional_ib);
+			}
+		}
+#endif // #if 0
+#endif // defined(CONFIG_SAMSUNG_SBI_QOS_TUNE)
+
 		if ((ab > 0) && (ab < CAM_CPAS_AXI_MIN_MNOC_AB_BW))
 			ab = CAM_CPAS_AXI_MIN_MNOC_AB_BW;
 
@@ -227,7 +268,12 @@ static int cam_cpas_util_vote_bus_client_bw(
 		cam_cpas_process_bw_overrides(bus_client, &ab, &ib,
 			&cam_debug->cpas_settings);
 
+#if defined(CONFIG_SAMSUNG_SBI_QOS_TUNE)
+	rc = cam_soc_bus_client_update_bw(bus_client->soc_bus_client, ab, ib,
+		additional_ib);
+#else
 	rc = cam_soc_bus_client_update_bw(bus_client->soc_bus_client, ab, ib);
+#endif
 	if (rc) {
 		CAM_ERR(CAM_CPAS,
 			"Update bw failed, ab[%llu] ib[%llu]",
@@ -377,9 +423,16 @@ static int cam_cpas_util_vote_default_ahb_axi(struct cam_hw_info *cpas_hw,
 	}
 
 	for (i = 0; i < cpas_core->num_axi_ports; i++) {
+#if defined(CONFIG_SAMSUNG_SBI_QOS_TUNE)
+		rc = cam_cpas_util_vote_bus_client_bw(
+			&cpas_core->axi_port[i].bus_client,
+			ab_bw, ib_bw, false, &applied_ab_bw, &applied_ib_bw,
+			false, 1, false);
+#else
 		rc = cam_cpas_util_vote_bus_client_bw(
 			&cpas_core->axi_port[i].bus_client,
 			ab_bw, ib_bw, false, &applied_ab_bw, &applied_ib_bw);
+#endif
 		if (rc) {
 			CAM_ERR(CAM_CPAS,
 				"Failed in mnoc vote, enable=%d, rc=%d",
@@ -790,9 +843,16 @@ static int cam_cpas_camnoc_set_vote_axi_clk_rate(
 		else
 			camnoc_bw = 0;
 
+#if defined(CONFIG_SAMSUNG_SBI_QOS_TUNE)
+		rc = cam_cpas_util_vote_bus_client_bw(
+			&camnoc_axi_port->bus_client,
+			0, camnoc_bw, true, &applied_ab, &applied_ib,
+			false, 1, false);
+#else
 		rc = cam_cpas_util_vote_bus_client_bw(
 			&camnoc_axi_port->bus_client,
 			0, camnoc_bw, true, &applied_ab, &applied_ib);
+#endif
 
 		CAM_DBG(CAM_CPAS,
 			"camnoc vote camnoc_bw[%llu] rc=%d %s",
@@ -828,6 +888,12 @@ static int cam_cpas_util_apply_client_axi_vote(
 		par_camnoc_old = 0, par_mnoc_ab_old = 0, par_mnoc_ib_old = 0;
 	int rc = 0, i = 0;
 	uint64_t applied_ab = 0, applied_ib = 0;
+#if defined(CONFIG_SAMSUNG_SBI_QOS_TUNE)
+	struct cam_cpas_private_soc *soc_private =
+		(struct cam_cpas_private_soc *) cpas_hw->soc_info.soc_private;
+	bool custom_enabled = false;
+	uint32_t num_cameras = 0;
+#endif
 
 	mutex_lock(&cpas_core->tree_lock);
 	if (!cpas_client->tree_node_valid) {
@@ -1000,11 +1066,50 @@ vote_start_clients:
 			mnoc_ib_bw = mnoc_axi_port->ib_bw;
 		else
 			mnoc_ib_bw = 0;
+#if defined(CONFIG_SAMSUNG_SBI_QOS_TUNE)
+		/* This will traverse through all nodes in the tree */
+		for (i = 0; i < CAM_CPAS_MAX_TREE_NODES; i++) {
+			if (!soc_private->tree_node[i])
+				continue;
+
+			/* hardcode for now : 27,28,31,34 are custom hw nodes on lahaina */
+			if ((soc_private->tree_node[i]->cell_idx == 27) ||
+				(soc_private->tree_node[i]->cell_idx == 28) ||
+				(soc_private->tree_node[i]->cell_idx == 31) ||
+				(soc_private->tree_node[i]->cell_idx == 34)) {
+				if ((soc_private->tree_node[i]->mnoc_ab_bw > 0) ||
+					(soc_private->tree_node[i]->mnoc_ib_bw > 0)) {
+					custom_enabled = true;
+				}
+			}
+
+			/* hardcode for now : 17,18,19 are ife0,1,2 ubwc nodes on lahaina */
+			if ((soc_private->tree_node[i]->cell_idx == 17) ||
+				(soc_private->tree_node[i]->cell_idx == 18) ||
+				(soc_private->tree_node[i]->cell_idx == 19)) {
+				if ((soc_private->tree_node[i]->mnoc_ab_bw > 0) ||
+					(soc_private->tree_node[i]->mnoc_ib_bw > 0)) {
+					num_cameras++;
+				}
+			}
+		}
+
+		CAM_DBG(CAM_CPAS, "custom=%d, num_cameras=%d, uhd=%d",
+			custom_enabled, num_cameras,
+			cpas_core->uhd_in_progress);
 
 		rc = cam_cpas_util_vote_bus_client_bw(
 			&mnoc_axi_port->bus_client,
 			mnoc_ab_bw, mnoc_ib_bw, false, &applied_ab,
+			&applied_ib,
+			custom_enabled, num_cameras,
+			cpas_core->uhd_in_progress);
+#else
+		rc = cam_cpas_util_vote_bus_client_bw(
+			&mnoc_axi_port->bus_client,
+			mnoc_ab_bw, mnoc_ib_bw, false, &applied_ab,
 			&applied_ib);
+#endif
 		if (rc) {
 			CAM_ERR(CAM_CPAS,
 				"Failed in mnoc vote ab[%llu] ib[%llu] rc=%d",
@@ -1047,10 +1152,16 @@ static int cam_cpas_util_apply_default_axi_vote(
 
 		CAM_DBG(CAM_CPAS, "Port=[%s] :ab[%llu] ib[%llu]",
 			axi_port->axi_port_name, mnoc_ab_bw, mnoc_ib_bw);
-
+#if defined(CONFIG_SAMSUNG_SBI_QOS_TUNE)
+		rc = cam_cpas_util_vote_bus_client_bw(&axi_port->bus_client,
+			mnoc_ab_bw, mnoc_ib_bw, false, &axi_port->applied_ab_bw,
+			&axi_port->applied_ib_bw,
+			false, 1, false);
+#else
 		rc = cam_cpas_util_vote_bus_client_bw(&axi_port->bus_client,
 			mnoc_ab_bw, mnoc_ib_bw, false, &axi_port->applied_ab_bw,
 			&axi_port->applied_ib_bw);
+#endif
 		if (rc) {
 			CAM_ERR(CAM_CPAS,
 				"Failed in mnoc vote ab[%llu] ib[%llu] rc=%d",
@@ -1228,7 +1339,7 @@ static int cam_cpas_util_apply_client_ahb_vote(struct cam_hw_info *cpas_hw,
 
 	if (cpas_core->streamon_clients) {
 		rc = cam_soc_util_set_clk_rate_level(&cpas_hw->soc_info,
-			highest_level, true);
+			highest_level);
 		if (rc) {
 			CAM_ERR(CAM_CPAS,
 				"Failed in scaling clock rate level %d for AHB",
@@ -1548,7 +1659,6 @@ static int cam_cpas_hw_stop(void *hw_priv, void *stop_args,
 	struct cam_cpas_private_soc *soc_private = NULL;
 	int rc = 0;
 	long result;
-	int retry_camnoc_idle = 0;
 
 	if (!hw_priv || !stop_args) {
 		CAM_ERR(CAM_CPAS, "Invalid arguments %pK %pK",
@@ -1602,18 +1712,6 @@ static int cam_cpas_hw_stop(void *hw_priv, void *stop_args,
 			}
 		}
 
-		if (cpas_core->internal_ops.qchannel_handshake) {
-			rc = cpas_core->internal_ops.qchannel_handshake(
-				cpas_hw, false);
-			if (rc) {
-				CAM_ERR(CAM_CPAS,
-					"failed in qchannel_handshake rc=%d",
-					rc);
-				retry_camnoc_idle = 1;
-				/* Do not return error, passthrough */
-			}
-		}
-
 		rc = cam_cpas_soc_disable_irq(&cpas_hw->soc_info);
 		if (rc) {
 			CAM_ERR(CAM_CPAS, "disable_irq failed, rc=%d", rc);
@@ -1629,19 +1727,6 @@ static int cam_cpas_hw_stop(void *hw_priv, void *stop_args,
 				atomic_read(&cpas_core->irq_count));
 		}
 
-		/* try again incase camnoc is still not idle */
-		if (cpas_core->internal_ops.qchannel_handshake &&
-			retry_camnoc_idle) {
-			rc = cpas_core->internal_ops.qchannel_handshake(
-				cpas_hw, false);
-			if (rc) {
-				CAM_ERR(CAM_CPAS,
-					"failed in qchannel_handshake rc=%d",
-					rc);
-				/* Do not return error, passthrough */
-			}
-		}
-
 		rc = cam_cpas_soc_disable_resources(&cpas_hw->soc_info,
 			true, false);
 		if (rc) {
@@ -1651,6 +1736,9 @@ static int cam_cpas_hw_stop(void *hw_priv, void *stop_args,
 		CAM_DBG(CAM_CPAS, "Disabled all the resources: irq_count=%d",
 			atomic_read(&cpas_core->irq_count));
 		cpas_hw->hw_state = CAM_HW_STATE_POWER_DOWN;
+#if defined(CONFIG_SAMSUNG_SBI_QOS_TUNE)
+		cpas_core->uhd_in_progress = false;
+#endif
 	}
 
 	ahb_vote.type = CAM_VOTE_ABSOLUTE;
@@ -1938,9 +2026,14 @@ static int cam_cpas_log_vote(struct cam_hw_info *cpas_hw)
 				cpas_core->camnoc_axi_port[i].applied_ib_bw);
 		}
 	}
-
+#if defined(CONFIG_SAMSUNG_SBI_QOS_TUNE)
+	CAM_INFO(CAM_CPAS, "ahb client curr vote level[%d], uhd_in_progress=%d",
+		cpas_core->ahb_bus_client.curr_vote_level,
+		cpas_core->uhd_in_progress);
+#else
 	CAM_INFO(CAM_CPAS, "ahb client curr vote level[%d]",
 		cpas_core->ahb_bus_client.curr_vote_level);
+#endif
 
 	if (!cpas_core->full_state_dump) {
 		CAM_DBG(CAM_CPAS, "CPAS full state dump not enabled");
@@ -2031,6 +2124,11 @@ static void cam_cpas_update_monitor_array(struct cam_hw_info *cpas_hw,
 		uint32_t be_mnoc_offset =
 			soc_private->rpmh_info[CAM_RPMH_BCM_BE_OFFSET] +
 			(0x4 * soc_private->rpmh_info[CAM_RPMH_BCM_MNOC_INDEX]);
+#if defined(CONFIG_SAMSUNG_SBI_QOS_TUNE)
+		uint32_t be_shub_offset =
+			soc_private->rpmh_info[CAM_RPMH_BCM_BE_OFFSET] +
+			(0x4 * 1); /* i=1 for SHUB, hardcode for now */
+#endif
 
 		/*
 		 * 0x4, 0x800 - DDR
@@ -2040,6 +2138,9 @@ static void cam_cpas_update_monitor_array(struct cam_hw_info *cpas_hw,
 		entry->fe_mnoc = cam_io_r_mb(rpmh_base + fe_mnoc_offset);
 		entry->be_ddr = cam_io_r_mb(rpmh_base + be_ddr_offset);
 		entry->be_mnoc = cam_io_r_mb(rpmh_base + be_mnoc_offset);
+#if defined(CONFIG_SAMSUNG_SBI_QOS_TUNE)
+		entry->be_shub = cam_io_r_mb(rpmh_base + be_shub_offset);
+#endif
 	}
 
 	entry->camnoc_fill_level[0] = cam_io_r_mb(
@@ -2123,10 +2224,17 @@ static void cam_cpas_dump_monitor_array(
 		}
 
 		if (cpas_core->regbase_index[CAM_CPAS_REG_RPMH] != -1) {
+#if defined(CONFIG_SAMSUNG_SBI_QOS_TUNE)
+			CAM_INFO(CAM_CPAS,
+				"fe_ddr=0x%x, fe_mnoc=0x%x, be_ddr=0x%x, be_mnoc=0x%x, be_shub=0x%x",
+				entry->fe_ddr, entry->fe_mnoc,
+				entry->be_ddr, entry->be_mnoc, entry->be_shub);
+#else
 			CAM_INFO(CAM_CPAS,
 				"fe_ddr=0x%x, fe_mnoc=0x%x, be_ddr=0x%x, be_mnoc=0x%x",
 				entry->fe_ddr, entry->fe_mnoc,
 				entry->be_ddr, entry->be_mnoc);
+#endif
 		}
 
 		CAM_INFO(CAM_CPAS,
@@ -2183,6 +2291,22 @@ done:
 	mutex_unlock(&cpas_hw->hw_mutex);
 	return rc;
 }
+
+#if defined(CONFIG_SAMSUNG_SBI_QOS_TUNE)
+static int cam_cpas_uhd_hint(struct cam_hw_info *cpas_hw,
+	bool uhd_hint)
+{
+	struct cam_cpas *cpas_core = (struct cam_cpas *) cpas_hw->core_info;
+
+	mutex_lock(&cpas_hw->hw_mutex);
+	cpas_core->uhd_in_progress = uhd_hint;
+	CAM_DBG(CAM_CPAS, "uhd_hint=%d", uhd_hint);
+	mutex_unlock(&cpas_hw->hw_mutex);
+
+	return 0;
+}
+#endif
+
 
 static int cam_cpas_hw_process_cmd(void *hw_priv,
 	uint32_t cmd_type, void *cmd_args, uint32_t arg_size)
@@ -2320,6 +2444,22 @@ static int cam_cpas_hw_process_cmd(void *hw_priv,
 		rc = cam_cpas_select_qos(hw_priv, *selection_mask);
 		break;
 	}
+
+#if defined(CONFIG_SAMSUNG_SBI_QOS_TUNE)
+	case CAM_CPAS_HW_CMD_UHD_HINT: {
+		bool *uhd_hint;
+
+		if (sizeof(bool) != arg_size) {
+			CAM_ERR(CAM_CPAS, "cmd_type %d, size mismatch %d",
+				cmd_type, arg_size);
+			break;
+		}
+
+		uhd_hint = (bool *)cmd_args;
+		rc = cam_cpas_uhd_hint(hw_priv, *uhd_hint);
+		break;
+	}
+#endif
 	default:
 		CAM_ERR(CAM_CPAS, "CPAS HW command not valid =%d", cmd_type);
 		break;
@@ -2456,7 +2596,7 @@ int cam_cpas_hw_probe(struct platform_device *pdev,
 	cpas_hw->soc_info.dev_name = pdev->name;
 	cpas_hw->open_count = 0;
 	cpas_core->ahb_bus_scaling_disable = false;
-	cpas_core->full_state_dump = false;
+	cpas_core->full_state_dump = true;
 
 	atomic64_set(&cpas_core->monitor_head, -1);
 

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2017-2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2017-2020, The Linux Foundation. All rights reserved.
  */
 
 #include <linux/uaccess.h>
@@ -44,6 +44,9 @@
 #include "cam_trace.h"
 #include "cam_cpas_api.h"
 #include "cam_common_util.h"
+#if IS_ENABLED(CONFIG_SEC_ABC)
+#include <linux/sti/abc_common.h>
+#endif
 
 #define ICP_WORKQ_TASK_CMD_TYPE 1
 #define ICP_WORKQ_TASK_MSG_TYPE 2
@@ -1062,7 +1065,8 @@ static bool cam_icp_update_clk_free(struct cam_icp_hw_mgr *hw_mgr,
 
 static bool cam_icp_debug_clk_update(struct cam_icp_clk_info *hw_mgr_clk_info)
 {
-	if (icp_hw_mgr.icp_debug_clk &&
+	if (icp_hw_mgr.icp_debug_clk < ICP_CLK_TURBO_HZ &&
+		icp_hw_mgr.icp_debug_clk &&
 		icp_hw_mgr.icp_debug_clk != hw_mgr_clk_info->curr_clk) {
 		hw_mgr_clk_info->base_clk = icp_hw_mgr.icp_debug_clk;
 		hw_mgr_clk_info->curr_clk = icp_hw_mgr.icp_debug_clk;
@@ -2128,6 +2132,9 @@ static int cam_icp_mgr_handle_frame_process(uint32_t *msg_ptr, int flag)
 				ctx_data->icp_dev_acquire_info->dev_type);
 			event_id = CAM_CTX_EVT_ID_CANCEL;
 		} else {
+#if defined(CONFIG_SEC_ABC)
+			sec_abc_send_event("MODULE=camera@ERROR=icp_error");
+#endif
 			CAM_ERR(CAM_ICP,
 				"Done with error: %u err_type= [%s] on ctx_id %d dev %d for req %llu",
 				ioconfig_ack->err_type,

@@ -39,6 +39,12 @@ struct scsi_transport_template;
 #define SG_NONE 0
 #define SG_ALL	SG_CHUNK_SIZE
 
+#ifdef CONFIG_ARCH_NO_SG_CHAIN
+#define SG_UFS SG_ALL
+#else
+#define SG_UFS 256
+#endif
+
 #define MODE_UNKNOWN 0x00
 #define MODE_INITIATOR 0x01
 #define MODE_TARGET 0x02
@@ -563,6 +569,14 @@ struct Scsi_Host {
 	atomic_t host_busy;		   /* commands actually active on low-level */
 	atomic_t host_blocked;
 
+#if defined(CONFIG_SCSI_UFSHCD_QTI)
+	ktime_t host_blocked_ts;
+	int		dispatch_ret;
+	int		host_blocked_count;
+	struct request *blocked_req;
+	int		host_busy_count;
+	ktime_t		host_busy_ts;
+#endif
 	unsigned int host_failed;	   /* commands that failed.
 					      protected by host_lock */
 	unsigned int host_eh_scheduled;    /* EH scheduled without command */

@@ -874,12 +874,14 @@ struct byte_cntr *byte_cntr_init(struct amba_device *adev,
 		dev_err(dev, "Byte_cntr interrupt registration failed\n");
 		return NULL;
 	}
+	enable_irq_wake(byte_cntr_irq);
 
 	ret = byte_cntr_register_chardev(byte_cntr_data);
 	if (ret) {
 		devm_free_irq(dev, byte_cntr_irq, byte_cntr_data);
 		devm_kfree(dev, byte_cntr_data);
 		dev_err(dev, "Byte_cntr char dev registration failed\n");
+		disable_irq_wake(byte_cntr_irq);		
 		return NULL;
 	}
 

@@ -102,6 +102,12 @@ struct uart_icount {
 typedef unsigned int __bitwise upf_t;
 typedef unsigned int __bitwise upstat_t;
 
+struct uart_local_buf {
+	unsigned char *buffer;
+	unsigned int size;
+	unsigned int index;
+};
+
 struct uart_port {
 	spinlock_t		lock;			/* port lock */
 	unsigned long		iobase;			/* in/out[bwl] */
@@ -253,6 +259,11 @@ struct uart_port {
 	struct serial_rs485     rs485;
 	struct serial_iso7816   iso7816;
 	void			*private_data;		/* generic platform data pointer */
+
+#ifdef CONFIG_QGKI
+	unsigned int			uart_logging;
+	struct uart_local_buf	uart_local_buf;
+#endif
 };
 
 static inline int serial_port_in(struct uart_port *up, int offset)
@@ -290,9 +301,11 @@ struct uart_state {
 	wait_queue_head_t	remove_wait;
 	struct uart_port	*uart_port;
 };
-
+#ifdef CONFIG_QGKI
+#define UART_XMIT_SIZE	(PAGE_SIZE * 4)
+#else
 #define UART_XMIT_SIZE	PAGE_SIZE
-
+#endif
 
 /* number of characters left in xmit buffer before we ask for more */
 #define WAKEUP_CHARS		256

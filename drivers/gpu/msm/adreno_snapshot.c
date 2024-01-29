@@ -117,6 +117,7 @@ static int find_object(uint64_t gpuaddr, struct kgsl_process_private *process)
 			objbuf[index].entry->priv == process)
 			return index;
 	}
+	pr_err("return -ENOENT at <%s: %d>", __FILE__, __LINE__);
 	return -ENOENT;
 }
 

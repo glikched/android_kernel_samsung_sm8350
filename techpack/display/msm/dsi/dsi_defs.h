@@ -288,7 +288,7 @@ enum dsi_cmd_set_type {
 	DSI_CMD_SET_POST_TIMING_SWITCH,
 	DSI_CMD_SET_QSYNC_ON,
 	DSI_CMD_SET_QSYNC_OFF,
-	DSI_CMD_SET_MAX
+	DSI_CMD_SET_MAX,
 };
 
 /**
@@ -361,6 +361,10 @@ struct dsi_cmd_desc {
 	struct mipi_dsi_msg msg;
 	bool last_command;
 	u32  post_wait_ms;
+
+#if defined(CONFIG_DISPLAY_SAMSUNG)
+	u8 *ss_txbuf;
+#endif
 };
 
 /**
@@ -377,6 +381,23 @@ struct dsi_panel_cmd_set {
 	u32 count;
 	u32 ctrl_idx;
 	struct dsi_cmd_desc *cmds;
+
+#if defined(CONFIG_DISPLAY_SAMSUNG)
+#define SUPPORT_PANEL_REVISION	20
+	int ss_cmd_type;
+	int read_startoffset;
+	char *name;
+	int exclusive_pass;
+
+	/* cmd_set_rev[panel_rev] is pointer to
+	 * describe "struct dsi_panel_cmd_set *set" for each panel revision.
+	 * If you want get cmd_set for panel revision A, get like below.
+	 * struct dsi_panel_cmd_set *set = set->cmd_set_rev[panel_rev];
+	 */
+	void *cmd_set_rev[SUPPORT_PANEL_REVISION];
+
+	void *self_disp_cmd_set_rev;
+#endif
 };
 
 /**
@@ -430,6 +451,24 @@ struct dsi_mode_info {
 	struct msm_display_vdc_info *vdc;
 	struct msm_ratio pclk_scale;
 	struct msm_roi_caps roi_caps;
+
+#if defined(CONFIG_DISPLAY_SAMSUNG)
+	/* Identify VRR HS by drm_mode's name.
+	 * drm_mode's name is defined by dsi_mode->timing.sot_hs_mode parsed
+	 * from samsung,mdss-dsi-sot-hs-mode in panel dtsi file.
+	 * ex) drm_mode->name is "1080x2316x60x193345cmdHS" for HS mode.
+	 *     drm_mode->name is "1080x2316x60x193345cmdNS" for NS mode.
+	 * To use this feature, declare different porch between HS and NS modes,
+	 * in panel dtsi file.
+	 * Refer to ss_is_sot_hs_from_drm_mode().
+	 */
+	bool sot_hs_mode;
+
+	/* DDI Passive mode.
+	 * ex) DDI 120hz + TE(AP) is 60hz.
+	 */
+	bool phs_mode;
+#endif
 };
 
 /**

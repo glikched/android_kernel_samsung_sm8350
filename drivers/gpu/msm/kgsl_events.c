@@ -257,6 +257,8 @@ int kgsl_add_event(struct kgsl_device *device, struct kgsl_event_group *group,
 	/* Get a reference to the context while the event is active */
 	if (context != NULL && !_kgsl_context_get(context)) {
 		kmem_cache_free(events_cache, event);
+		dev_err(device->dev,
+			"return -ENOENT at <%s: %d>", __FILE__, __LINE__);
 		return -ENOENT;
 	}
 

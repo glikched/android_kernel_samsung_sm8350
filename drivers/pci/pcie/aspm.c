@@ -354,6 +354,34 @@ static u32 calc_l1ss_pwron(struct pci_dev *pdev, u32 scale, u32 val)
 	return 0;
 }
 
+#ifdef CONFIG_SEC_PCIE
+static void encode_l12_threshold(u32 threshold_us, u32 *scale, u32 *value)
+{
+	u64 threshold_ns = threshold_us * 1000UL;
+	u64 value_mask = PCI_L1SS_CTL1_LTR_L12_TH_VALUE >> 16;
+
+	/* See PCIe r3.1, sec 7.33.3 and sec 6.18 */
+	if (threshold_ns <= value_mask) {
+		*scale = 0;
+		*value = threshold_ns;
+	} else if ((roundup(threshold_ns, 32) >> 5) <= value_mask) {
+		*scale = 1;
+		*value = roundup(threshold_ns, 32) >> 5;
+	} else if ((roundup(threshold_ns, 1024) >> 10) <= value_mask) {
+		*scale = 2;
+		*value = roundup(threshold_ns, 1024) >> 10;
+	} else if ((roundup(threshold_ns, 32768) >> 15) <= value_mask) {
+		*scale = 3;
+		*value = roundup(threshold_ns, 32768) >> 15;
+	} else if ((roundup(threshold_ns, 1048576) >> 20) <= value_mask) {
+		*scale = 4;
+		*value = roundup(threshold_ns, 1048576) >> 20;
+	} else {
+		*scale = 5;
+		*value = roundup(threshold_ns, 33554432) >> 25;
+	}
+}
+#else
 static void encode_l12_threshold(u32 threshold_us, u32 *scale, u32 *value)
 {
 	u32 threshold_ns = threshold_us * 1000;
@@ -379,6 +407,7 @@ static void encode_l12_threshold(u32 threshold_us, u32 *scale, u32 *value)
 		*value = threshold_ns >> 25;
 	}
 }
+#endif
 
 struct aspm_register_info {
 	u32 support:2;

@@ -75,6 +75,10 @@ int cam_sensor_publish_dev_info(struct cam_req_mgr_device_info *info);
  */
 int cam_sensor_establish_link(struct cam_req_mgr_core_dev_link_setup *link);
 
+#if defined(CONFIG_SEC_Q2Q_PROJECT)
+#define MIPI_SW_SEL_GPIO 405
+#endif
+
 /**
  * @s_ctrl: Sensor ctrl structure
  * @arg:    Camera control command argument
@@ -90,4 +94,12 @@ int32_t cam_sensor_driver_cmd(struct cam_sensor_ctrl_t *s_ctrl, void *arg);
  */
 void cam_sensor_shutdown(struct cam_sensor_ctrl_t *s_ctrl);
 
+#if defined(CONFIG_CAMERA_SSM_I2C_ENV)
+void cam_sensor_ssm_i2c_read(uint32_t addr, uint32_t *data,
+	enum camera_sensor_i2c_type addr_type,
+	enum camera_sensor_i2c_type data_type);
+void cam_sensor_ssm_i2c_write(uint32_t addr, uint32_t data,
+	enum camera_sensor_i2c_type addr_type,
+	enum camera_sensor_i2c_type data_type);
+#endif
 #endif /* _CAM_SENSOR_CORE_H_ */

@@ -134,14 +134,7 @@ static int iwl_configure_rxq(struct iwl_mvm *mvm)
 		.dataflags[0] = IWL_HCMD_DFL_NOCOPY,
 	};
 
-	/*
-	 * The default queue is configured via context info, so if we
-	 * have a single queue, there's nothing to do here.
-	 */
-	if (mvm->trans->num_rx_queues == 1)
-		return 0;
-
-	/* skip the default queue */
+	/* Do not configure default queue, it is configured via context info */
 	num_queues = mvm->trans->num_rx_queues - 1;
 
 	size = struct_size(cmd, data, num_queues);
@@ -1417,10 +1410,8 @@ int iwl_mvm_up(struct iwl_mvm *mvm)
 	while (!sband && i < NUM_NL80211_BANDS)
 		sband = mvm->hw->wiphy->bands[i++];
 
-	if (WARN_ON_ONCE(!sband)) {
-		ret = -ENODEV;
+	if (WARN_ON_ONCE(!sband))
 		goto error;
-	}
 
 	chan = &sband->channels[0];
 

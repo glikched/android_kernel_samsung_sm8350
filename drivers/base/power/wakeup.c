@@ -974,7 +974,6 @@ void pm_system_irq_wakeup(unsigned int irq_number)
 			log_irq_wakeup_reason(irq_number);
 			pr_warn("%s: %d triggered %s\n", __func__,
 					irq_number, name);
-
 		}
 		pm_system_wakeup();
 	}
@@ -1185,6 +1184,61 @@ static int wakeup_sources_stats_seq_show(struct seq_file *m, void *v)
 
 	return 0;
 }
+
+#if IS_ENABLED(CONFIG_SEC_PM)
+static int print_wakeup_source_active(
+				     struct wakeup_source *ws)
+{
+	unsigned long flags;
+	ktime_t total_time;
+	unsigned long active_count;
+	ktime_t active_time;
+	ktime_t prevent_sleep_time;
+	int ret;
+
+	spin_lock_irqsave(&ws->lock, flags);
+
+	total_time = ws->total_time;
+	prevent_sleep_time = ws->prevent_sleep_time;
+	active_count = ws->active_count;
+	if (ws->active) {
+		ktime_t now = ktime_get();
+
+		active_time = ktime_sub(now, ws->last_time);
+		total_time = ktime_add(total_time, active_time);
+
+		if (ws->autosleep_enabled)
+			prevent_sleep_time = ktime_add(prevent_sleep_time,
+				ktime_sub(now, ws->start_prevent_time));
+	} else {
+		active_time = ktime_set(0, 0);
+	}
+
+	ret = pr_info("%s: active_count(%lu), active_time(%lld), total_time(%lld)\n",
+			ws->name, active_count,
+			ktime_to_ms(active_time), ktime_to_ms(total_time));
+
+	spin_unlock_irqrestore(&ws->lock, flags);
+
+	return ret;
+}
+
+int wakeup_sources_stats_active(void)
+{
+	struct wakeup_source *ws;
+
+	pr_info("Active wake lock:\n");
+
+	rcu_read_lock();
+	list_for_each_entry_rcu(ws, &wakeup_sources, entry)
+		if (ws->active)
+			print_wakeup_source_active(ws);
+	rcu_read_unlock();
+
+	return 0;
+}
+EXPORT_SYMBOL_GPL(wakeup_sources_stats_active);
+#endif
 
 static const struct seq_operations wakeup_sources_stats_seq_ops = {
 	.start = wakeup_sources_stats_seq_start,

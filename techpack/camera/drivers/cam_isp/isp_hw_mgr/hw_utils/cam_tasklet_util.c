@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2017-2019, 2021 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2017-2019, The Linux Foundation. All rights reserved.
  */
 
 #include <linux/slab.h>
@@ -11,18 +11,21 @@
 #include "cam_tasklet_util.h"
 #include "cam_irq_controller.h"
 #include "cam_debug_util.h"
-#include "cam_common_util.h"
 
 
 /* Threshold for scheduling delay in ms */
 #define CAM_TASKLET_SCHED_TIME_THRESHOLD        5
 
 /* Threshold for execution delay in ms */
-#define CAM_TASKLET_EXE_TIME_THRESHOLD          10
+#define CAM_TASKLET_EXE_TIME_THRESHOLD          15
 
 #define CAM_TASKLETQ_SIZE                          256
 
 static void cam_tasklet_action(unsigned long data);
+
+static void cam_tasklet_delay_detect(
+	uint32_t idx, ktime_t start_timestamp, uint32_t threshold);
+
 
 /**
  * struct cam_tasklet_queue_cmd:
@@ -71,7 +74,8 @@ struct cam_tasklet_info {
 	struct list_head                   free_cmd_list;
 	struct list_head                   used_cmd_list;
 	struct cam_tasklet_queue_cmd       cmd_queue[CAM_TASKLETQ_SIZE];
-
+	uint32_t                           magic_num;
+	int32_t                            cmd_cnt;
 	void                              *ctx_priv;
 };
 
@@ -106,8 +110,8 @@ int cam_tasklet_get_cmd(
 
 	spin_lock_irqsave(&tasklet->tasklet_lock, flags);
 	if (list_empty(&tasklet->free_cmd_list)) {
-		CAM_ERR_RATE_LIMIT(CAM_ISP, "No more free tasklet cmd idx:%d",
-			tasklet->index);
+		CAM_ERR(CAM_ISP, "No more free tasklet cmd idx:%d num %u %p current_cmd %d",
+			tasklet->index, tasklet->magic_num, &tasklet->tasklet, tasklet->cmd_cnt);
 		rc = -ENODEV;
 		goto spin_unlock;
 	} else {
@@ -115,6 +119,7 @@ int cam_tasklet_get_cmd(
 			struct cam_tasklet_queue_cmd, list);
 		list_del_init(&(tasklet_cmd)->list);
 		*bh_cmd = tasklet_cmd;
+		tasklet->cmd_cnt++;
 	}
 
 spin_unlock:
@@ -144,6 +149,7 @@ void cam_tasklet_put_cmd(
 	list_del_init(&tasklet_cmd->list);
 	list_add_tail(&tasklet_cmd->list, &tasklet->free_cmd_list);
 	*bh_cmd = NULL;
+	tasklet->cmd_cnt--;
 	spin_unlock_irqrestore(&tasklet->tasklet_lock, flags);
 }
 
@@ -224,6 +230,10 @@ void cam_tasklet_enqueue_cmd(
 	list_add_tail(&tasklet_cmd->list,
 		&tasklet->used_cmd_list);
 	spin_unlock_irqrestore(&tasklet->tasklet_lock, flags);
+
+	if ((tasklet->cmd_cnt % 100) == 0)
+		CAM_WARN(CAM_ISP, "Anomaly detected Tasklet %u magic_num %u %p enqueued cmds %d",
+			tasklet->index, tasklet->magic_num, &tasklet->tasklet, tasklet->cmd_cnt);
 	tasklet_hi_schedule(&tasklet->tasklet);
 }
 
@@ -245,6 +255,8 @@ int cam_tasklet_init(
 
 	tasklet->ctx_priv = hw_mgr_ctx;
 	tasklet->index = idx;
+	tasklet->magic_num = (idx * 59) + 13;
+	tasklet->cmd_cnt = 0;
 	spin_lock_init(&tasklet->tasklet_lock);
 	memset(tasklet->cmd_queue, 0, sizeof(tasklet->cmd_queue));
 	INIT_LIST_HEAD(&tasklet->free_cmd_list);
@@ -260,6 +272,8 @@ int cam_tasklet_init(
 
 	*tasklet_info = tasklet;
 
+	CAM_INFO(CAM_ISP, "idx %u magic_num %u %p",
+		tasklet->index, tasklet->magic_num, &tasklet->tasklet);
 	return 0;
 }
 
@@ -278,7 +292,12 @@ void cam_tasklet_deinit(void    **tasklet_info)
 
 static inline void cam_tasklet_flush(struct cam_tasklet_info *tasklet_info)
 {
+	CAM_INFO(CAM_ISP, "Enter idx %u num %u %p cmd_cnt %d",
+		tasklet_info->index, tasklet_info->magic_num,
+		&tasklet_info->tasklet, tasklet_info->cmd_cnt);
 	cam_tasklet_action((unsigned long) tasklet_info);
+	CAM_INFO(CAM_ISP, "Exit idx %u",
+		tasklet_info->index);
 }
 
 int cam_tasklet_start(void  *tasklet_info)
@@ -299,6 +318,8 @@ int cam_tasklet_start(void  *tasklet_info)
 			&tasklet->free_cmd_list);
 	}
 
+	CAM_INFO(CAM_ISP, "idx %u magic_num %u %p",
+		tasklet->index, tasklet->magic_num, &tasklet->tasklet);
 	atomic_set(&tasklet->tasklet_active, 1);
 
 	tasklet_enable(&tasklet->tasklet);
@@ -313,10 +334,15 @@ void cam_tasklet_stop(void  *tasklet_info)
 	if (!atomic_read(&tasklet->tasklet_active))
 		return;
 
+	CAM_INFO(CAM_ISP, "Enter idx %u magic_num %u %p",
+		tasklet->index, tasklet->magic_num, &tasklet->tasklet);
 	atomic_set(&tasklet->tasklet_active, 0);
 	tasklet_kill(&tasklet->tasklet);
+	CAM_INFO(CAM_ISP, "Kill done idx %u", tasklet->index);
 	tasklet_disable(&tasklet->tasklet);
 	cam_tasklet_flush(tasklet);
+	CAM_INFO(CAM_ISP, "Exit idx %u magic_num %u %p",
+		tasklet->index, tasklet->magic_num, &tasklet->tasklet);
 }
 
 /*
@@ -331,6 +357,7 @@ void cam_tasklet_stop(void  *tasklet_info)
  */
 static void cam_tasklet_action(unsigned long data)
 {
+	//bool flag = false;
 	struct cam_tasklet_info          *tasklet_info = NULL;
 	struct cam_tasklet_queue_cmd     *tasklet_cmd = NULL;
 	ktime_t                           curr_time;
@@ -338,19 +365,53 @@ static void cam_tasklet_action(unsigned long data)
 	tasklet_info = (struct cam_tasklet_info *)data;
 
 	while (!cam_tasklet_dequeue_cmd(tasklet_info, &tasklet_cmd)) {
-		cam_common_util_thread_switch_delay_detect(
-			"Tasklet schedule",
-			tasklet_cmd->tasklet_enqueue_ts,
+		cam_tasklet_delay_detect(tasklet_info->index, tasklet_cmd->tasklet_enqueue_ts,
 			CAM_TASKLET_SCHED_TIME_THRESHOLD);
 		curr_time = ktime_get();
 
 		tasklet_cmd->bottom_half_handler(tasklet_cmd->handler_priv,
 			tasklet_cmd->payload);
 
-		cam_common_util_thread_switch_delay_detect(
-			"Tasklet execution",
-			curr_time,
+		cam_tasklet_delay_detect(tasklet_info->index, curr_time,
 			CAM_TASKLET_EXE_TIME_THRESHOLD);
 		cam_tasklet_put_cmd(tasklet_info, (void **)(&tasklet_cmd));
+		//flag = true;
+	}
+}
+
+/*
+ * cam_tasklet_delay_detect()
+ *
+ * @brief:              Function to detect delay
+ *
+ * @start_timestamp:    start timestamp
+ *
+ * @threshold:          threshold limit
+ *
+ * @return:             Void
+ */
+
+static void cam_tasklet_delay_detect(
+	uint32_t idx, ktime_t start_timestamp, uint32_t threshold)
+{
+	uint64_t                         diff;
+	ktime_t                          cur_time;
+	struct timespec64                cur_ts;
+	struct timespec64                start_ts;
+
+	cur_time = ktime_get();
+	diff = ktime_ms_delta(cur_time, start_timestamp);
+	start_ts  = ktime_to_timespec64(start_timestamp);
+	cur_ts = ktime_to_timespec64(cur_time);
+
+	if (diff > threshold) {
+			CAM_WARN_RATE_LIMIT_CUSTOM(CAM_ISP, 1, 1,
+				"tasklet %u %s delay detected %ld:%06ld, curr %ld:%06ld, diff %ld:",
+				idx,
+				(threshold == CAM_TASKLET_EXE_TIME_THRESHOLD) ? "execution" : "scheduling",
+				start_ts.tv_sec,
+				start_ts.tv_nsec/NSEC_PER_USEC,
+				cur_ts.tv_sec, cur_ts.tv_nsec/NSEC_PER_USEC,
+				diff);
 	}
 }

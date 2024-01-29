@@ -723,6 +723,15 @@ config QMP_DEBUGFS_CLIENT
 	  into an exposed debugfs node to send to AOP. The driver expects the
 	  passed in string argument to be formatted correctly for AOP to read.
 
+config QMP_SYSFS_CLIENT
+	bool "Sysfs Client to communicate with AOP using QMP protocol"
+	default n
+	help
+	  This options enables a driver which allows clients to send messages
+	  to Alway On processor using QMP transport. Users can echo a message
+	  into an exposed debugfs node to send to AOP. The driver expects the
+	  passed in string argument to be formatted correctly for AOP to read.
+
 config QSEE_IPC_IRQ_BRIDGE
 	tristate "QSEE IPC Interrupt Bridge"
 	help
@@ -995,7 +1004,7 @@ config QTI_DDR_STATS_LOG
 
 config QTI_SYS_PM_VX
 	tristate "Qualcomm Technologies Inc (QTI) System PM Violators Driver"
-	depends on QMP_DEBUGFS_CLIENT
+	depends on QMP_DEBUGFS_CLIENT || SEC_PM
 	help
 	  This option enables debug subystems that prevent system low power
 	  modes. The user sends a QMP message to AOP to record subsystems
@@ -1132,8 +1141,8 @@ config QCOM_WDOG_BITE_EARLY_PANIC
 config QCOM_WATCHDOG_BARK_TIME
 	depends on QCOM_WDT_CORE
 	int "Qualcomm Technologies, Inc. Watchdog bark time in ms"
-	default 11000
-	range 11000 11000
+	default 14000
+	range 14000 14000
 	help
 	  The amount of time, in milliseconds, that should elapse after
 	  a watchdog timer reset before a bark interrupt is sent from the
@@ -1357,7 +1366,35 @@ config SDX_EXT_IPC
 
       If unsure, say N.
 
+config SUPPORT_SSC_SPU
+	bool "Support SSC(SLPI) SPU(System Parameter update)"
+	help
+	  Add support for SSC SPU.
+
+config SUPPORT_SLPI_SLEEP_DEBUG
+	bool "Support SSC(SLPI) Sleep debug"
+	default n
+	help
+	  Say 'Y' here to change sleep issue detect condition for SLPI
+
 source "drivers/soc/qcom/icnss2/Kconfig"
 
 source "drivers/soc/qcom/gnsssirf/Kconfig"
+
+config DSP_SLEEP_RECOVERY
+	tristate "DSP_SLEEP_RECOVERY"
+	help
+	  Say 'Y' here to enable SSR when DSP(ADSP/CDSP) fail to enter sleep.
+
+config DSP_SLEEP_DEBUG
+	tristate "DSP_SLEEP_DEBUG"
+	help
+	  Say 'Y' here to change sleep issue detect condition to 24hours and 5th count
+
+config SEC_CDSP_NO_CRASH_FOR_ENG
+	bool "crash only trigger on USER/USERDEBUG except ENG"
+	default n
+	help
+	  This option provides crash only except ENG Binary.
+
 endmenu

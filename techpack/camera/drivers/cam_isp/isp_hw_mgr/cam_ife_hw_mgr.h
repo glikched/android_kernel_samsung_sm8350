@@ -17,11 +17,14 @@
 
 /* IFE resource constants */
 #define CAM_IFE_HW_IN_RES_MAX            (CAM_ISP_IFE_IN_RES_MAX & 0xFF)
+#define CAM_IFE_HW_OUT_RES_MAX           (CAM_ISP_IFE_OUT_RES_MAX & 0xFF)
 #define CAM_IFE_HW_RES_POOL_MAX          64
 
 /* IFE_HW_MGR custom config */
 #define CAM_IFE_CUSTOM_CFG_FRAME_HEADER_TS   BIT(0)
 #define CAM_IFE_CUSTOM_CFG_SW_SYNC_ON        BIT(1)
+
+#define CAM_IFE_UBWC_COMP_EN                 BIT(1)
 
 /**
  * struct cam_ife_hw_mgr_debug - contain the debug information
@@ -120,7 +123,9 @@ struct cam_ife_hw_mgr_ctx {
 	struct list_head                res_list_ife_csid;
 	struct list_head                res_list_ife_src;
 	struct list_head                res_list_ife_in_rd;
-	struct cam_isp_hw_mgr_res      *res_list_ife_out;
+	struct cam_isp_hw_mgr_res       res_list_ife_out[
+						CAM_IFE_HW_OUT_RES_MAX];
+
 	struct list_head                free_res_list;
 	struct cam_isp_hw_mgr_res       res_pool[CAM_IFE_HW_RES_POOL_MAX];
 
@@ -150,6 +155,9 @@ struct cam_ife_hw_mgr_ctx {
 	bool                            init_done;
 	bool                            is_fe_enabled;
 	bool                            is_dual;
+#if defined(CONFIG_SAMSUNG_SBI)
+	bool                            is_uhd;
+#endif
 	bool                            custom_enabled;
 	uint32_t                        custom_config;
 	struct timespec64               ts;
@@ -179,7 +187,6 @@ struct cam_ife_hw_mgr_ctx {
  * @ctx_lock               context lock
  * @support_consumed_addr  indicate whether hw supports last consumed address
  * @hw_pid_support         hw pid support for this target
- * @max_vfe_out_res_type   max ife out res type value from hw
  */
 struct cam_ife_hw_mgr {
 	struct cam_isp_hw_mgr          mgr_common;
@@ -202,7 +209,6 @@ struct cam_ife_hw_mgr {
 	spinlock_t                     ctx_lock;
 	bool                           support_consumed_addr;
 	bool                           hw_pid_support;
-	uint32_t                       max_vfe_out_res_type;
 };
 
 /**

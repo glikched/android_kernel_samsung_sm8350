@@ -275,6 +275,19 @@ ifeq ($(KERNEL_BUILD), 1)
 	obj-y	+= wsa883x/
 	obj-y	+= rouleur/
 endif
+
+ifdef CONFIG_SND_SOC_TAS256x
+	obj-y	 += tas256x/
+endif
+
+ifdef CONFIG_SND_SOC_TAS256x
+	obj-y	 += tas256x/
+endif
+
+ifdef CONFIG_SND_SOC_AW882XX
+	obj-y += aw882xx/
+endif
+
 # Module information used by KBuild framework
 obj-$(CONFIG_WCD9XXX_CODEC_CORE) += wcd_core_dlkm.o
 obj-$(CONFIG_WCD9XXX_CODEC_CORE_V2) += wcd_core_dlkm.o

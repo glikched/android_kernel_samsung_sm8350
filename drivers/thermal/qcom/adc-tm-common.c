@@ -311,10 +311,27 @@ static void adc_tm_map_temp_voltage(const struct adc_tm_map_pt *pts,
 /* Used by thermal clients to read ADC channel temperature*/
 int adc_tm_get_temp_vadc(struct adc_tm_sensor *sensor, int *temp)
 {
+#if IS_ENABLED(CONFIG_SEC_EXT_THERMAL_MONITOR)
+	int ret, milli_celsius;
+#endif /* CONFIG_SEC_EXT_THERMAL_MONITOR */
+
 	if (!sensor || !sensor->adc)
 		return -EINVAL;
 
+#if IS_ENABLED(CONFIG_SEC_EXT_THERMAL_MONITOR)
+	ret = iio_read_channel_processed(sensor->adc, &milli_celsius);
+	if (ret < 0)
+		return ret;
+
+	if (sensor->adc_ch == USB_THM_CH || sensor->adc_ch == WPC_THM_CH)
+		*temp = sec_convert_adc_to_temp(sensor->adc_ch, milli_celsius);
+	else
+		*temp = milli_celsius;
+
+	return 0;
+#else
 	return iio_read_channel_processed(sensor->adc, temp);
+#endif /* CONFIG_SEC_EXT_THERMAL_MONITOR */
 }
 
 int32_t adc_tm_read_reg(struct adc_tm_chip *chip,

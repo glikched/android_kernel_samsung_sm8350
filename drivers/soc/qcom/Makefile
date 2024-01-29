@@ -66,6 +66,7 @@ obj-$(CONFIG_QCOM_LLCC_PERFMON) += llcc_perfmon.o
 obj-$(CONFIG_QCOM_RPMHPD) += rpmhpd.o
 obj-$(CONFIG_QCOM_RPMPD) += rpmpd.o
 obj-$(CONFIG_QMP_DEBUGFS_CLIENT) += qmp-debugfs-client.o
+obj-$(CONFIG_QMP_SYSFS_CLIENT) += qmp-sysfs-client.o
 obj-$(CONFIG_QCOM_SMP2P_SLEEPSTATE) += smp2p_sleepstate.o
 obj-$(CONFIG_SENSORS_SSC) += sensors_ssc.o
 obj-$(CONFIG_QCOM_GLINK_PKT) += glink_pkt.o
@@ -83,7 +84,7 @@ obj-$(CONFIG_MSM_REMOTEQDSS) += remoteqdss.o
 obj-$(CONFIG_MSM_SPSS_UTILS) += spss_utils.o
 obj-$(CONFIG_MSM_IDLE_STATS)	+= lpm-stats.o
 obj-$(CONFIG_MSM_PERFORMANCE) += msm_performance.o
-obj-$(CONFIG_QTI_RPM_STATS_LOG) += rpmh_master_stat.o
+obj-$(CONFIG_QTI_RPM_STATS_LOG) += rpmh_master_stat.o subsystem_sleep_debug.o
 ifdef CONFIG_MSM_RPM_SMD
 obj-$(CONFIG_QTI_RPM_STATS_LOG) += rpm_master_stat.o
 endif

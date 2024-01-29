@@ -1347,6 +1347,8 @@ static void purge_configs_funcs(struct gadget_info *gi)
 		list_for_each_entry_safe_reverse(f, tmp, &c->functions, list) {
 
 			list_move(&f->list, &cfg->func_list);
+			if (f->disable)
+				f->disable(f);
 			if (f->unbind) {
 				dev_dbg(&gi->cdev.gadget->dev,
 					"unbind function '%s'/%p\n",

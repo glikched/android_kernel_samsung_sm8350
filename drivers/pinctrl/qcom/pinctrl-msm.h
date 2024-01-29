@@ -160,6 +160,8 @@ struct msm_gpio_wakeirq_map {
  * @no_wake_gpios:  The list of non-wakeup capable GPIOs
  * @n_no_wake_gpios:The number of entries in non-wakeup capable gpios
  * @dir_conn:       An array describing all the pins directly connected to GIC.
+ * @wakeirq_map:    The list of non-wakeup capable GPIOs
+ * @nwakeirq_map:   The number of entries in non-wakeup capable gpios
  */
 struct msm_pinctrl_soc_data {
 	const struct pinctrl_pin_desc *pins;

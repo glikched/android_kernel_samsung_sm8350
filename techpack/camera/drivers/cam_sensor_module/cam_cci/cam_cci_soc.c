@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2017-2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2017-2020, The Linux Foundation. All rights reserved.
  */
 
 #include "cam_cci_dev.h"
@@ -76,7 +76,6 @@ static int cam_cci_init_master(struct cci_device *cci_dev,
 
 		cci_dev->cci_master_info[master].status = 0;
 		cci_dev->cci_master_info[master].is_initilized = true;
-		cci_dev->is_burst_read[master] = false;
 	}
 
 	return 0;
@@ -124,6 +123,14 @@ int cam_cci_init(struct v4l2_subdev *sd,
 		rc = -ENOMEM;
 		return rc;
 	}
+
+	CAM_INFO(CAM_CCI,
+		"debug init cci:%d ref:%d master:%d sid:0x%x freq:%d",
+		cci_dev->soc_info.index,
+		cci_dev->ref_count,
+		master,
+		c_ctrl->cci_info->sid,
+		c_ctrl->cci_info->i2c_freq_mode);
 
 	if (cci_dev->ref_count++) {
 		rc = cam_cci_init_master(cci_dev, master);
@@ -413,6 +420,7 @@ int cam_cci_soc_release(struct cci_device *cci_dev,
 
 	if (!(--cci_dev->master_active_slave[master])) {
 		cci_dev->cci_master_info[master].is_initilized = false;
+		cci_dev->cci_master_info[master].status = 0;
 		CAM_DBG(CAM_CCI,
 			"All submodules are released for master: %d", master);
 	}

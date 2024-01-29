@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2017-2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2017-2020, The Linux Foundation. All rights reserved.
  */
 
 #include "cam_actuator_dev.h"
@@ -10,37 +10,9 @@
 #include "cam_trace.h"
 #include "camera_main.h"
 
-static int cam_actuator_subdev_close_internal(struct v4l2_subdev *sd,
-	struct v4l2_subdev_fh *fh)
-{
-	struct cam_actuator_ctrl_t *a_ctrl =
-		v4l2_get_subdevdata(sd);
-
-	if (!a_ctrl) {
-		CAM_ERR(CAM_ACTUATOR, "a_ctrl ptr is NULL");
-		return -EINVAL;
-	}
-
-	mutex_lock(&(a_ctrl->actuator_mutex));
-	cam_actuator_shutdown(a_ctrl);
-	mutex_unlock(&(a_ctrl->actuator_mutex));
-
-	return 0;
-}
-
-static int cam_actuator_subdev_close(struct v4l2_subdev *sd,
-	struct v4l2_subdev_fh *fh)
-{
-	bool crm_active = cam_req_mgr_is_open(CAM_ACTUATOR);
-
-	if (crm_active) {
-		CAM_DBG(CAM_ACTUATOR,
-			"CRM is ACTIVE, close should be from CRM");
-		return 0;
-	}
-
-	return cam_actuator_subdev_close_internal(sd, fh);
-}
+#if defined(CONFIG_SAMSUNG_OIS_MCU_STM32) || defined(CONFIG_SAMSUNG_OIS_RUMBA_S4) || defined(CONFIG_SAMSUNG_ACTUATOR_PREVENT_SHAKING)
+struct cam_actuator_ctrl_t *g_a_ctrls[SEC_SENSOR_ID_MAX];
+#endif
 
 static long cam_actuator_subdev_ioctl(struct v4l2_subdev *sd,
 	unsigned int cmd, void *arg)
@@ -55,14 +27,6 @@ static long cam_actuator_subdev_ioctl(struct v4l2_subdev *sd,
 		if (rc)
 			CAM_ERR(CAM_ACTUATOR,
 				"Failed for driver_cmd: %d", rc);
-		break;
-	case CAM_SD_SHUTDOWN:
-		if (!cam_req_mgr_is_shutdown()) {
-			CAM_ERR(CAM_CORE, "SD shouldn't come from user space");
-			return 0;
-		}
-
-		rc = cam_actuator_subdev_close_internal(sd, NULL);
 		break;
 	default:
 		CAM_ERR(CAM_ACTUATOR, "Invalid ioctl cmd: %u", cmd);
@@ -117,6 +81,24 @@ static long cam_actuator_init_subdev_do_ioctl(struct v4l2_subdev *sd,
 }
 #endif
 
+static int cam_actuator_subdev_close(struct v4l2_subdev *sd,
+	struct v4l2_subdev_fh *fh)
+{
+	struct cam_actuator_ctrl_t *a_ctrl =
+		v4l2_get_subdevdata(sd);
+
+	if (!a_ctrl) {
+		CAM_ERR(CAM_ACTUATOR, "a_ctrl ptr is NULL");
+		return -EINVAL;
+	}
+
+	mutex_lock(&(a_ctrl->actuator_mutex));
+	cam_actuator_shutdown(a_ctrl);
+	mutex_unlock(&(a_ctrl->actuator_mutex));
+
+	return 0;
+}
+
 static struct v4l2_subdev_core_ops cam_actuator_subdev_core_ops = {
 	.ioctl = cam_actuator_subdev_ioctl,
 #ifdef CONFIG_COMPAT
@@ -149,13 +131,10 @@ static int cam_actuator_init_subdev(struct cam_actuator_ctrl_t *a_ctrl)
 	a_ctrl->v4l2_dev_str.ent_function =
 		CAM_ACTUATOR_DEVICE_TYPE;
 	a_ctrl->v4l2_dev_str.token = a_ctrl;
-	a_ctrl->v4l2_dev_str.close_seq_prior =
-		 CAM_SD_CLOSE_MEDIUM_PRIORITY;
 
 	rc = cam_register_subdev(&(a_ctrl->v4l2_dev_str));
-	if (rc)
-		CAM_ERR(CAM_ACTUATOR,
-			"Fail with cam_register_subdev rc: %d", rc);
+	if ((rc < 0) && (rc != -EPROBE_DEFER))
+		CAM_ERR(CAM_SENSOR, "Fail with cam_register_subdev rc: %d", rc);
 
 	return rc;
 }
@@ -169,11 +148,13 @@ static int32_t cam_actuator_driver_i2c_probe(struct i2c_client *client,
 	struct cam_hw_soc_info          *soc_info = NULL;
 	struct cam_actuator_soc_private *soc_private = NULL;
 
+#if 0
 	if (client == NULL || id == NULL) {
 		CAM_ERR(CAM_ACTUATOR, "Invalid Args client: %pK id: %pK",
 			client, id);
 		return -EINVAL;
 	}
+#endif
 
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
 		CAM_ERR(CAM_ACTUATOR, "%s :: i2c_check_functionality failed",
@@ -240,6 +221,12 @@ static int32_t cam_actuator_driver_i2c_probe(struct i2c_client *client,
 		cam_actuator_apply_request;
 	a_ctrl->last_flush_req = 0;
 	a_ctrl->cam_act_state = CAM_ACTUATOR_INIT;
+
+
+#if defined(CONFIG_SAMSUNG_OIS_MCU_STM32) || defined(CONFIG_SAMSUNG_OIS_RUMBA_S4) || defined(CONFIG_SAMSUNG_ACTUATOR_PREVENT_SHAKING)
+	if (a_ctrl->soc_info.index < SEC_SENSOR_ID_MAX)
+		g_a_ctrls[a_ctrl->soc_info.index] = a_ctrl;
+#endif
 
 	return rc;
 
@@ -316,6 +303,12 @@ static int cam_actuator_component_bind(struct device *dev,
 	if (rc)
 		goto free_mem;
 
+	if (soc_private->i2c_info.slave_addr != 0)
+		a_ctrl->io_master_info.cci_client->sid =
+			soc_private->i2c_info.slave_addr >> 1;
+	a_ctrl->io_master_info.cci_client->cci_i2c_master =
+		a_ctrl->cci_i2c_master;
+
 	a_ctrl->bridge_intf.device_hdl = -1;
 	a_ctrl->bridge_intf.link_hdl = -1;
 	a_ctrl->bridge_intf.ops.get_dev_info =
@@ -331,6 +324,11 @@ static int cam_actuator_component_bind(struct device *dev,
 	platform_set_drvdata(pdev, a_ctrl);
 	a_ctrl->cam_act_state = CAM_ACTUATOR_INIT;
 	CAM_DBG(CAM_ACTUATOR, "Component bound successfully");
+
+#if defined(CONFIG_SAMSUNG_OIS_MCU_STM32) || defined(CONFIG_SAMSUNG_OIS_RUMBA_S4) || defined(CONFIG_SAMSUNG_ACTUATOR_PREVENT_SHAKING)
+	if (a_ctrl->soc_info.index < SEC_SENSOR_ID_MAX)
+		g_a_ctrls[a_ctrl->soc_info.index] = a_ctrl;
+#endif
 
 	return rc;
 
@@ -466,6 +464,9 @@ static struct i2c_driver cam_actuator_driver_i2c = {
 	.remove = cam_actuator_driver_i2c_remove,
 	.driver = {
 		.name = ACTUATOR_DRIVER_I2C,
+		.owner = THIS_MODULE,
+		.of_match_table = cam_actuator_driver_dt_match,
+		.suppress_bind_attrs = true,
 	},
 };
 

@@ -35,6 +35,10 @@
 
 #include "internal.h"
 
+#ifdef CONFIG_SECURITY_DEFEX
+#include <linux/defex.h>
+#endif
+
 int do_truncate(struct dentry *dentry, loff_t length, unsigned int time_attrs,
 	struct file *filp)
 {
@@ -1056,7 +1060,6 @@ struct file *filp_open(const char *filename, int flags, umode_t mode)
 {
 	struct filename *name = getname_kernel(filename);
 	struct file *file = ERR_CAST(name);
-	
 	if (!IS_ERR(name)) {
 		file = file_open_name(name, flags, mode);
 		putname(name);
@@ -1081,17 +1084,41 @@ long do_sys_open(int dfd, const char __user *filename, int flags, umode_t mode)
 	struct open_flags op;
 	int fd = build_open_flags(flags, mode, &op);
 	struct filename *tmp;
+#if defined(CONFIG_DISPLAY_SAMSUNG)
+	char name[64];
+	int len;
+#endif
 
 	if (fd)
 		return fd;
 
 	tmp = getname(filename);
+	
+#if defined(CONFIG_DISPLAY_SAMSUNG)
+	if (tmp == ERR_PTR(-ENOENT))
+	{
+		len = strncpy_from_user(name, filename, 64);
+		if (len > 0) {
+			if (strncmp(name, "/dev/kgsl-3d0", strlen("/dev/kgsl-3d0")) == 0) {
+				printk(KERN_ERR "<%s:%d> ### ykwak : open(%s) failed\n", __FUNCTION__, __LINE__, name);
+				BUG_ON(1);
+			}
+		}		
+	}
+#endif
+
 	if (IS_ERR(tmp))
 		return PTR_ERR(tmp);
 
 	fd = get_unused_fd_flags(flags);
 	if (fd >= 0) {
 		struct file *f = do_filp_open(dfd, tmp, &op);
+#ifdef CONFIG_SECURITY_DEFEX
+		if (!IS_ERR(f) && task_defex_enforce(current, f, -__NR_openat)) {
+			fput(f);
+			f = ERR_PTR(-EPERM);
+		}
+#endif
 		if (IS_ERR(f)) {
 			put_unused_fd(fd);
 			fd = PTR_ERR(f);

@@ -601,6 +601,8 @@ static int find_vma_block(struct a6xx_gmu_device *gmu, u32 addr, u32 size)
 			return i;
 	}
 
+	dev_err(&gmu->pdev->dev,
+		"return -ENOENT at <%s: %d>", __FILE__, __LINE__);
 	return -ENOENT;
 }
 

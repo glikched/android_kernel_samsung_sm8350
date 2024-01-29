@@ -835,4 +835,10 @@ int dsi_display_ctrl_vreg_on(struct dsi_display *display);
  */
 int dsi_display_ctrl_vreg_off(struct dsi_display *display);
 
+#if defined(CONFIG_DISPLAY_SAMSUNG)
+int dsi_display_ctrl_init(struct dsi_display *display);
+int dsi_display_ctrl_deinit(struct dsi_display *display);
+#endif
+
+int dsi_display_pm_runtime_update(struct dsi_display *display, bool enable);
 #endif /* _DSI_DISPLAY_H_ */

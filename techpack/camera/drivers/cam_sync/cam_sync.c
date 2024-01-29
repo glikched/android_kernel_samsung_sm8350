@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2017-2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2017-2020, The Linux Foundation. All rights reserved.
  */
 
 #include <linux/init.h>
@@ -364,8 +364,8 @@ int cam_sync_get_obj_ref(int32_t sync_obj)
 	}
 
 	atomic_inc(&row->ref_cnt);
-	spin_unlock(&sync_dev->row_spinlocks[sync_obj]);
 	CAM_DBG(CAM_SYNC, "get ref for obj %d", sync_obj);
+	spin_unlock(&sync_dev->row_spinlocks[sync_obj]);
 
 	return 0;
 }
@@ -477,7 +477,6 @@ static int cam_sync_handle_create(struct cam_private_ioctl_arg *k_ioctl)
 		u64_to_user_ptr(k_ioctl->ioctl_ptr),
 		k_ioctl->size))
 		return -EFAULT;
-	sync_create.name[SYNC_DEBUG_NAME_LEN] = '\0';
 
 	result = cam_sync_create(&sync_create.sync_obj,
 		sync_create.name);

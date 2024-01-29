@@ -54,6 +54,8 @@
 #define CREATE_TRACE_POINTS
 #include "arm-smmu-trace.h"
 
+#include <linux/sec_debug.h>
+
 /*
  * Apparently, some Qualcomm arm64 platforms which appear to expose their SMMU
  * global register space are still, in fact, using a hypervisor to mediate it
@@ -1176,11 +1178,10 @@ static const struct arm_smmu_flush_ops arm_smmu_s2_tlb_ops_v1 = {
 	.tlb_sync		= arm_smmu_tlb_sync_vmid,
 };
 
-static void arm_smmu_deferred_flush(struct arm_smmu_domain *smmu_domain)
+static void arm_smmu_defer_flush(struct arm_smmu_domain *smmu_domain)
 {
-	/*
-	 * This checks for deferred invalidations, and perform flush all.
-	 * Deferred invalidations helps replace multiple invalidations with
+	/* This checks for defered invalidations, and perform flush all.
+	 * Defered invalidations helps replace multiple invalidations with
 	 * single flush
 	 */
 	if (smmu_domain->defer_flush) {
@@ -1188,7 +1189,6 @@ static void arm_smmu_deferred_flush(struct arm_smmu_domain *smmu_domain)
 		smmu_domain->defer_flush = false;
 	}
 }
-
 static void print_ctx_regs(struct arm_smmu_device *smmu, struct arm_smmu_cfg
 			   *cfg, unsigned int fsr)
 {
@@ -1349,6 +1349,58 @@ int iommu_get_fault_ids(struct iommu_domain *domain,
 }
 EXPORT_SYMBOL(iommu_get_fault_ids);
 
+#if IS_ENABLED(CONFIG_SEC_DEBUG)
+static const char *__arm_smmu_get_devname(struct device *dev)
+{
+	const char *token;
+	const char *delim = ":,.";
+	const char *devname;
+
+	token = dev_name(dev);
+	if (!token)
+		return "No Name";
+
+	pr_info("smmu client name - %s\n", token);
+
+	/* FIXME: the name of pci client only has delimeters and numbers */
+	if (dev_is_pci(dev))
+		return token;
+
+	while (true) {
+		devname = token;
+		token = strpbrk(token, delim);
+		if (!token)
+			break;
+		token++;	/* skip delimiter */
+	}
+
+	return devname;
+}
+
+static const char *arm_smmu_get_devname(const struct arm_smmu_domain *smmu_domain,
+		u32 sid)
+{
+	struct iommu_fwspec *fwspec = NULL;
+	struct device* dev = NULL;
+	unsigned int i;
+
+	if (smmu_domain->dev)
+		fwspec = smmu_domain->dev->iommu_fwspec;
+
+	for (i = 0; fwspec && i < fwspec->num_ids; i++) {
+		if ((fwspec->ids[i] & smmu_domain->smmu->streamid_mask) == sid) {
+			dev = smmu_domain->dev;
+			break;
+		}
+	}
+
+	if (!fwspec || !dev)
+		return "No Device";
+
+	return __arm_smmu_get_devname(dev);
+}
+#endif
+
 static irqreturn_t arm_smmu_context_fault(int irq, void *dev)
 {
 	int flags, ret, tmp;
@@ -1384,6 +1436,9 @@ static irqreturn_t arm_smmu_context_fault(int irq, void *dev)
 	if (fatal_asf && (fsr & FSR_ASF)) {
 		dev_err(smmu->dev,
 			"Took an address size fault.  Refusing to recover.\n");
+#if IS_ENABLED(CONFIG_SEC_USER_RESET_DEBUG)
+		sec_debug_save_smmu_info_asf_fatal();
+#endif
 		BUG();
 	}
 
@@ -1468,7 +1523,16 @@ static irqreturn_t arm_smmu_context_fault(int irq, void *dev)
 		if (!non_fatal_fault) {
 			dev_err(smmu->dev,
 				"Unhandled arm-smmu context fault!\n");
-			BUG();
+#if IS_ENABLED(CONFIG_SEC_USER_RESET_DEBUG)
+			sec_debug_save_smmu_info_fatal();
+#endif
+#if IS_ENABLED(CONFIG_SEC_DEBUG)
+			if (IS_ENABLED(CONFIG_SEC_DEBUG))
+				panic("%s SMMU Fault - SID=0x%x",
+						arm_smmu_get_devname(smmu_domain, frsynra), frsynra);
+			else
+#endif
+				BUG();
 		}
 	}
 
@@ -3222,8 +3286,7 @@ static int arm_smmu_map(struct iommu_domain *domain, unsigned long iova,
 	arm_smmu_rpm_get(smmu);
 	spin_lock_irqsave(&smmu_domain->cb_lock, flags);
 	ret = ops->map(ops, iova, paddr, size, prot);
-
-	arm_smmu_deferred_flush(smmu_domain);
+	arm_smmu_defer_flush(smmu_domain);
 
 	spin_unlock_irqrestore(&smmu_domain->cb_lock, flags);
 	arm_smmu_rpm_put(smmu);
@@ -3239,7 +3302,7 @@ static int arm_smmu_map(struct iommu_domain *domain, unsigned long iova,
 		list_splice_init(&nonsecure_pool, &smmu_domain->nonsecure_pool);
 		ret = ops->map(ops, iova, paddr, size, prot);
 		list_splice_init(&smmu_domain->nonsecure_pool, &nonsecure_pool);
-		arm_smmu_deferred_flush(smmu_domain);
+		arm_smmu_defer_flush(smmu_domain);
 		spin_unlock_irqrestore(&smmu_domain->cb_lock, flags);
 		arm_smmu_rpm_put(smmu);
 		arm_smmu_release_prealloc_memory(smmu_domain, &nonsecure_pool);
@@ -3299,6 +3362,7 @@ static size_t arm_smmu_unmap(struct iommu_domain *domain, unsigned long iova,
 	arm_smmu_rpm_get(smmu);
 	spin_lock_irqsave(&smmu_domain->cb_lock, flags);
 	ret = ops->unmap(ops, iova, size, gather);
+	// arm_smmu_defer_flush(smmu_domain);  // for CTS camera, tempoary remove defer flush in unmap
 	spin_unlock_irqrestore(&smmu_domain->cb_lock, flags);
 	arm_smmu_rpm_put(smmu);
 
@@ -3401,7 +3465,7 @@ static size_t arm_smmu_map_sg(struct iommu_domain *domain, unsigned long iova,
 		spin_lock_irqsave(&smmu_domain->cb_lock, flags);
 		ret = pgtbl_info->map_sg(ops, iova, sg_start,
 					 idx_end - idx_start, prot, &size);
-		arm_smmu_deferred_flush(smmu_domain);
+		arm_smmu_defer_flush(smmu_domain);
 		spin_unlock_irqrestore(&smmu_domain->cb_lock, flags);
 
 		if (ret == -ENOMEM) {
@@ -3421,7 +3485,7 @@ static size_t arm_smmu_map_sg(struct iommu_domain *domain, unsigned long iova,
 						 &size);
 			list_splice_init(&smmu_domain->nonsecure_pool,
 					 &nonsecure_pool);
-			arm_smmu_deferred_flush(smmu_domain);
+			arm_smmu_defer_flush(smmu_domain);
 			spin_unlock_irqrestore(&smmu_domain->cb_lock, flags);
 			arm_smmu_release_prealloc_memory(smmu_domain,
 							 &nonsecure_pool);

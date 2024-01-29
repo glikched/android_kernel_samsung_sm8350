@@ -937,6 +937,13 @@ static int bt_power_populate_dt_pinfo(struct platform_device *pdev)
 		if (bt_power_pdata->bt_gpio_debug < 0)
 			pr_warn("bt-debug-gpio not provided in devicetree\n");
 
+        //SS HW gpio for xFEM detect
+		bt_power_pdata->gpio_xFEM_detect  =
+			of_get_named_gpio(pdev->dev.of_node,
+						"qcom,bt-fem-sel-gpio",  0);
+		if (bt_power_pdata->gpio_xFEM_detect < 0)
+			pr_warn("bt-fem-sel-gpio not provided in devicetree\n");
+
 		bt_power_pdata->xo_gpio_sys_rst =
 			of_get_named_gpio(pdev->dev.of_node,
 						"qcom,xo-reset-gpio", 0);
@@ -1005,10 +1012,13 @@ static int bt_power_probe(struct platform_device *pdev)
 	if (btpower_get_tcs_table_info(pdev, bt_power_pdata) < 0)
 		pr_err("%s: Failed to get TCS table info\n", __func__);
 
+	pr_warn("%s done.\n", __func__);
+
 	return 0;
 
 free_pdata:
 	kfree(bt_power_pdata);
+	bt_power_pdata = NULL;
 	return ret;
 }
 
@@ -1087,6 +1097,11 @@ static long bt_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	int chipset_version = 0;
 	int itr, num_vregs;
 	struct bt_power_vreg_data *vreg_info = NULL;
+
+	if (bt_power_pdata == NULL) {
+		pr_err("%s: bt_power_pdata is null\n", __func__);
+		return 0;
+	}
 
 	switch (cmd) {
 	case BT_CMD_SLIM_TEST:
@@ -1193,6 +1208,26 @@ static long bt_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		pr_err("%s: BT_CMD_SET_IPA_TCS_INFO\n", __func__);
 		btpower_enable_ipa_vreg(btpdev, bt_power_pdata);
 		break;
+
+//SS HW gpio for xFEM detect
+	case BT_CMD_GET_HW_GPIO_INFO:
+		if (bt_power_pdata->gpio_xFEM_detect > 0) {
+			ret  =  gpio_direction_input(bt_power_pdata->gpio_xFEM_detect);
+			if (ret) {
+				pr_err("%s:failed to gpio_direction_input xFEM :%d\n",	__func__, ret);
+			} else {
+				int gpio_val =0 ;
+				gpio_val = gpio_get_value(bt_power_pdata->gpio_xFEM_detect);
+				pr_err("BT_CMD_GET_HW_GPIO_INFO bt-fem-sel-gpio(%d) value(%d)\n",
+						bt_power_pdata->gpio_xFEM_detect, gpio_val);
+				if (copy_to_user((void __user *)arg,  &gpio_val, sizeof(gpio_val))) {
+					pr_err("%s: copy to user failed\n", __func__);
+					ret = -EFAULT;
+				}
+			}
+		} 
+		break;
+
 	default:
 		return -ENOIOCTLCMD;
 	}

@@ -20,6 +20,13 @@
 #ifndef __MSM_DRV_H__
 #define __MSM_DRV_H__
 
+#if defined(CONFIG_DISPLAY_SAMSUNG) && defined(CONFIG_UML)
+#include "samsung/kunit_test/ss_kunit_test_garbage_macro.h"
+#endif
+#if defined(CONFIG_DRM_MSM_DP_KUNIT) && defined(CONFIG_UML)
+#include "dp_kunit_macro.h"
+#endif
+
 #include <linux/kernel.h>
 #include <linux/clk.h>
 #include <linux/cpufreq.h>
@@ -214,6 +221,10 @@ enum msm_mdp_conn_property {
 	CONNECTOR_PROP_FB_TRANSLATION_MODE,
 	CONNECTOR_PROP_QSYNC_MODE,
 	CONNECTOR_PROP_CMD_FRAME_TRIGGER_MODE,
+#if defined(CONFIG_DISPLAY_SAMSUNG)
+	/* SAMSUNG_FINGERPRINT */
+	CONNECTOR_PROP_FINGERPRINT_MASK,
+#endif
 
 	/* total # of properties */
 	CONNECTOR_PROP_COUNT
@@ -343,12 +354,16 @@ struct msm_roi_alignment {
  * @merge_rois: merge rois before sending to display
  * @num_roi: maximum number of rois supported
  * @align: roi alignment restrictions
+ * @half_panel_pu            True For Dual dsc encoders if partial update is
+ *                           enabled and only one encoder needs to be used,
+ *                           False in all other cases
  */
 struct msm_roi_caps {
 	bool enabled;
 	bool merge_rois;
 	uint32_t num_roi;
 	struct msm_roi_alignment align;
+	bool half_panel_pu;
 };
 
 /**
@@ -687,6 +702,9 @@ struct msm_display_topology {
  */
 struct msm_mode_info {
 	uint32_t frame_rate;
+#if defined(CONFIG_DISPLAY_SAMSUNG)
+	uint32_t frame_rate_org;
+#endif
 	uint32_t vtotal;
 	uint32_t prefill_lines;
 	uint32_t jitter_numer;
@@ -1134,6 +1152,10 @@ int msm_fb_obj_get_attrs(struct drm_gem_object *obj, int *fb_ns,
 
 struct drm_fb_helper *msm_fbdev_init(struct drm_device *dev);
 void msm_fbdev_free(struct drm_device *dev);
+
+#if defined(CONFIG_DISPLAY_SAMSUNG)
+int __msm_drm_notifier_call_chain(unsigned long event, void *data);
+#endif
 
 struct hdmi;
 #if IS_ENABLED(CONFIG_DRM_MSM_HDMI)

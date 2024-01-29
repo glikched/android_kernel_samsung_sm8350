@@ -968,6 +968,13 @@ config SERIAL_MSM_GENI
 	    hardware.
 	    The driver supports console and High speed UART functions.
 
+config SERIAL_UART_SAMSUNG_USE
+	bool "Samsung's specific usage of serial uart"
+	default n
+	help
+	    Samsung defines two device nodes(console and High speed UART) for one serial port.
+	    Select one node to use and destroy other at runtime
+
 config SERIAL_MSM_GENI_EARLY_CONSOLE
 	bool "MSM on-chip GENI HW based early console support"
 	help
@@ -1593,6 +1600,11 @@ config SERIAL_MILBEAUT_USIO_CONSOLE
 	  SoCs as the system console (the system console is the device which
 	  receives all kernel messages and warnings and which allows logins in
 	  single user mode).
+
+config QC_BT_UART
+	bool "QC IBS UART driver"
+	help
+	  This is a config for Qualcomm bt using inband sleep control.
 
 endmenu
 

@@ -19,11 +19,17 @@
 #include <linux/slab.h>
 #include <linux/acpi.h>
 #include <linux/usb/of.h>
+#ifdef CONFIG_SND_QC_USB_AUDIO_MODULE
+#include <linux/usb/qc_usb_audio.h>
+#endif
 
 #include "xhci.h"
 #include "xhci-plat.h"
 #include "xhci-mvebu.h"
 #include "xhci-rcar.h"
+
+#undef dev_dbg
+#define dev_dbg dev_err
 
 static struct hc_driver __read_mostly xhci_plat_hc_driver;
 
@@ -352,6 +358,16 @@ static int xhci_plat_probe(struct platform_device *pdev)
 	if (ret)
 		goto dealloc_usb2_hcd;
 
+#ifdef CONFIG_SND_QC_USB_AUDIO_MODULE
+	ret = qc_usb_audio_init(pdev->dev.parent, pdev);
+	if (ret) {
+		dev_err(&pdev->dev, "USB Audio INIT fail\n");
+		return ret;
+	} else {
+		dev_info(&pdev->dev, "USB Audio offloading is supported\n");
+	}
+#endif
+
 	device_enable_async_suspend(&pdev->dev);
 	if (device_may_wakeup(sysdev)) {
 		device_wakeup_enable(&xhci->shared_hcd->self.root_hub->dev);
@@ -394,6 +410,18 @@ static int xhci_plat_remove(struct platform_device *dev)
 	struct clk *clk = xhci->clk;
 	struct clk *reg_clk = xhci->reg_clk;
 	struct usb_hcd *shared_hcd = xhci->shared_hcd;
+
+#if defined(CONFIG_USB_HOST_SAMSUNG_FEATURE)
+		/* In order to prevent kernel panic */
+		if (!pm_runtime_suspended(&xhci->shared_hcd->self.root_hub->dev)) {
+			pr_info("%s, shared_hcd pm_runtime_forbid\n", __func__);
+			pm_runtime_forbid(&xhci->shared_hcd->self.root_hub->dev);
+		}
+		if (!pm_runtime_suspended(&xhci->main_hcd->self.root_hub->dev)) {
+			pr_info("%s, main_hcd pm_runtime_forbid\n", __func__);
+			pm_runtime_forbid(&xhci->main_hcd->self.root_hub->dev);
+		}
+#endif
 
 	pm_runtime_get_sync(&dev->dev);
 	xhci->xhc_state |= XHCI_STATE_REMOVING;

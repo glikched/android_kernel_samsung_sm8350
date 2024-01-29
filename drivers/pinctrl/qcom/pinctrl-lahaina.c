@@ -1938,7 +1938,13 @@ static const struct msm_pingroup lahaina_groups[] = {
 };
 
 static const int lahaina_reserved_gpios[] = {
-	52, 53, 54, 55, 56, 57, 58, 59, -1
+#if !defined(CONFIG_SEC_FACTORY)
+	52, 53, 54, 55,
+#endif
+#if IS_ENABLED(CONFIG_MST_LDO)
+	30, 31,
+#endif
+	-1
 };
 
 static struct pinctrl_qup lahaina_qup_regs[] = {
@@ -1982,7 +1988,7 @@ static struct msm_pinctrl_soc_data lahaina_pinctrl = {
 /* By default, all the gpios that are mpm wake capable are enabled.
  * The following list disables the gpios explicitly
  */
-static const unsigned int config_mpm_wake_disable_gpios[] = { 151, 202 };
+static const unsigned int config_mpm_wake_disable_gpios[] = { 202 };
 
 static void lahaina_pinctrl_config_mpm_wake_disable_gpios(void)
 {
@@ -1999,7 +2005,7 @@ static int lahaina_pinctrl_no_wake_probe(struct platform_device *pdev)
 	uint32_t *no_wake_gpios;
 	int i, length;
 
-	prop = of_get_property(pdev->dev.of_node, "no-wake-gpios", &length);
+	prop = of_get_property(pdev->dev.of_node, "wakeup-disabled-gpios", &length);
 	if (!prop)
 		return -ENOENT;
 
@@ -2015,6 +2021,8 @@ static int lahaina_pinctrl_no_wake_probe(struct platform_device *pdev)
 	lahaina_pinctrl.no_wake_gpios = no_wake_gpios;
 	lahaina_pinctrl.n_no_wake_gpios = length;
 
+	pr_info("%s: %d", __func__, lahaina_pinctrl.n_no_wake_gpios);
+
 	return 0;
 }
 
@@ -2022,7 +2030,7 @@ static int lahaina_pinctrl_probe(struct platform_device *pdev)
 {
 	int length, ret;
 
-	if (of_find_property(pdev->dev.of_node, "no-wake-gpios", &length)) {
+	if (of_find_property(pdev->dev.of_node, "wakeup-disabled-gpios", &length)) {
 		ret = lahaina_pinctrl_no_wake_probe(pdev);
 		if (ret)
 			return ret;

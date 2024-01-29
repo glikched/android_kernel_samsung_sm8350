@@ -296,6 +296,12 @@
 				hysteresis = <12000>;
 				type = "passive";
 			};
+
+			shutdown-cfg {
+				temperature = <115000>;
+				hysteresis = <0>;
+				type = "critical";
+			};
 		};
 
 		cooling-maps {
@@ -327,6 +333,12 @@
 				temperature = <110000>;
 				hysteresis = <10000>;
 				type = "passive";
+			};
+
+			shutdown-cfg {
+				temperature = <115000>;
+				hysteresis = <0>;
+				type = "critical";
 			};
 		};
 
@@ -366,6 +378,12 @@
 				hysteresis = <10000>;
 				type = "passive";
 			};
+
+			shutdown-cfg {
+				temperature = <115000>;
+				hysteresis = <0>;
+				type = "critical";
+			};
 		};
 
 		cooling-maps {
@@ -403,6 +421,12 @@
 				temperature = <110000>;
 				hysteresis = <10000>;
 				type = "passive";
+			};
+
+			shutdown-cfg {
+				temperature = <115000>;
+				hysteresis = <0>;
+				type = "critical";
 			};
 		};
 
@@ -442,6 +466,12 @@
 				hysteresis = <10000>;
 				type = "passive";
 			};
+
+			shutdown-cfg {
+				temperature = <115000>;
+				hysteresis = <0>;
+				type = "critical";
+			};
 		};
 
 		cooling-maps {
@@ -479,6 +509,12 @@
 				temperature = <110000>;
 				hysteresis = <10000>;
 				type = "passive";
+			};
+
+			shutdown-cfg {
+				temperature = <115000>;
+				hysteresis = <0>;
+				type = "critical";
 			};
 		};
 
@@ -518,6 +554,12 @@
 				hysteresis = <10000>;
 				type = "passive";
 			};
+
+			shutdown-cfg {
+				temperature = <115000>;
+				hysteresis = <0>;
+				type = "critical";
+			};
 		};
 
 		cooling-maps {
@@ -556,6 +598,12 @@
 				hysteresis = <10000>;
 				type = "passive";
 			};
+
+			shutdown-cfg {
+				temperature = <115000>;
+				hysteresis = <0>;
+				type = "critical";
+			};
 		};
 
 		cooling-maps {
@@ -593,6 +641,12 @@
 				temperature = <110000>;
 				hysteresis = <10000>;
 				type = "passive";
+			};
+
+			shutdown-cfg {
+				temperature = <115000>;
+				hysteresis = <0>;
+				type = "critical";
 			};
 		};
 
@@ -648,6 +702,12 @@
 				hysteresis = <0>;
 				type = "passive";
 			};
+
+			shutdown-cfg {
+				temperature = <115000>;
+				hysteresis = <0>;
+				type = "critical";
+			};
 		};
 
 		cooling-maps {
@@ -675,6 +735,12 @@
 				temperature = <105000>;
 				hysteresis = <10000>;
 				type = "passive";
+			};
+
+			shutdown-cfg {
+				temperature = <115000>;
+				hysteresis = <0>;
+				type = "critical";
 			};
 		};
 
@@ -710,6 +776,12 @@
 				hysteresis = <10000>;
 				type = "passive";
 			};
+
+			shutdown-cfg {
+				temperature = <115000>;
+				hysteresis = <0>;
+				type = "critical";
+			};
 		};
 
 		cooling-maps {
@@ -743,6 +815,12 @@
 				temperature = <105000>;
 				hysteresis = <10000>;
 				type = "passive";
+			};
+
+			shutdown-cfg {
+				temperature = <115000>;
+				hysteresis = <0>;
+				type = "critical";
 			};
 		};
 
@@ -778,6 +856,12 @@
 				hysteresis = <5000>;
 				type = "passive";
 			};
+
+			shutdown-cfg {
+				temperature = <115000>;
+				hysteresis = <0>;
+				type = "critical";
+			};
 		};
 
 		cooling-maps {
@@ -812,6 +896,12 @@
 				hysteresis = <5000>;
 				type = "passive";
 			};
+
+			shutdown-cfg {
+				temperature = <115000>;
+				hysteresis = <0>;
+				type = "critical";
+			};
 		};
 	};
 
@@ -831,6 +921,12 @@
 				temperature = <115000>;
 				hysteresis = <5000>;
 				type = "passive";
+			};
+
+			shutdown-cfg {
+				temperature = <115000>;
+				hysteresis = <0>;
+				type = "critical";
 			};
 		};
 	};
@@ -852,6 +948,12 @@
 				hysteresis = <5000>;
 				type = "passive";
 			};
+
+			shutdown-cfg {
+				temperature = <115000>;
+				hysteresis = <0>;
+				type = "critical";
+			};
 		};
 	};
 
@@ -871,6 +973,12 @@
 				temperature = <115000>;
 				hysteresis = <5000>;
 				type = "passive";
+			};
+
+			shutdown-cfg {
+				temperature = <115000>;
+				hysteresis = <0>;
+				type = "critical";
 			};
 		};
 	};
@@ -892,6 +1000,12 @@
 				hysteresis = <5000>;
 				type = "passive";
 			};
+
+			shutdown-cfg {
+				temperature = <115000>;
+				hysteresis = <0>;
+				type = "critical";
+			};
 		};
 	};
 
@@ -911,6 +1025,12 @@
 				temperature = <115000>;
 				hysteresis = <5000>;
 				type = "passive";
+			};
+
+			shutdown-cfg {
+				temperature = <115000>;
+				hysteresis = <0>;
+				type = "critical";
 			};
 		};
 	};

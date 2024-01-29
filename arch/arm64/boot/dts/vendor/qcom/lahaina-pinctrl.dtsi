@@ -1307,7 +1307,7 @@
 			config {
 				pins = "gpio36", "gpio37";
 				drive-strength = <2>;
-				bias-pull-up;
+				bias-disable;
 			};
 		};
 
@@ -1503,7 +1503,7 @@
 			config {
 				pins = "gpio60", "gpio61";
 				drive-strength = <2>;
-				bias-pull-up;
+				bias-disable;
 			};
 		};
 
@@ -2863,34 +2863,6 @@
 		};
 	};
 
-	pm8008i_active: pm8008i_active {
-		mux {
-			pins = "gpio33";
-			function = "gpio";
-		};
-
-		config {
-			pins = "gpio33";
-			bias-disable;
-			output-high;
-			drive-strength = <2>;
-		};
-	};
-
-	pm8008j_active: pm8008j_active {
-		mux {
-			pins = "gpio35";
-			function = "gpio";
-		};
-
-		config {
-			pins = "gpio35";
-			bias-disable;
-			output-high;
-			drive-strength = <2>;
-		};
-	};
-
 	pcie0 {
 		pcie0_perst_default: pcie0_perst_default {
 			mux {
@@ -3608,13 +3580,14 @@
 		mux {
 			/* CLK, DATA */
 			pins = "gpio113","gpio114";
-			function = "cci_i2c";
+			function = "gpio";
 		};
 
 		config {
 			pins = "gpio113","gpio114";
 			bias-pull-down; /* PULL DOWN */
 			drive-strength = <2>; /* 2 MA */
+			input-enable;
 		};
 
 	};

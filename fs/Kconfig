@@ -15,6 +15,9 @@ config VALIDATE_FS_PARSER
 	  Enable this to perform validation of the parameter description for a
 	  filesystem when it is registered.
 
+config INTERRUPTIBLE_SYNC
+	bool "Support interruptible sync for Samsung Mobile Device"
+
 if BLOCK
 
 config FS_IOMAP
@@ -143,7 +146,7 @@ if BLOCK
 menu "DOS/FAT/EXFAT/NT Filesystems"
 
 source "fs/fat/Kconfig"
-source "fs/exfat/Kconfig"
+source "fs/sdfat/Kconfig"
 source "fs/ntfs/Kconfig"
 
 endmenu
@@ -323,5 +326,20 @@ endif # NETWORK_FILESYSTEMS
 source "fs/nls/Kconfig"
 source "fs/dlm/Kconfig"
 source "fs/unicode/Kconfig"
+
+config SEC_DEBUG_FPUT_WATCHDOG
+	bool "fput watchdog"
+	depends on SEC_DEBUG
+	---help---
+	  Sets up a watchdog timer to capture file and task that are
+   	  locked up attempting to fput.
+	  A detected lockup causes system panic with message.
+
+config SEC_DEBUG_FPUT_WATCHDOG_TIMEOUT
+	int "Watchdog timeout in seconds"
+	range 1 300
+	default 180
+	depends on SEC_DEBUG_FPUT_WATCHDOG
+
 
 endmenu

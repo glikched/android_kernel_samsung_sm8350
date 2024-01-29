@@ -32,6 +32,7 @@
 #define CAM_CUSTOM_DEVICE_TYPE    (CAM_DEVICE_TYPE_BASE + 14)
 #define CAM_OPE_DEVICE_TYPE       (CAM_DEVICE_TYPE_BASE + 15)
 #define CAM_TFE_DEVICE_TYPE       (CAM_DEVICE_TYPE_BASE + 16)
+#define CAM_SBI_DEVICE_TYPE       (CAM_DEVICE_TYPE_BASE + 17)
 
 /* cam_req_mgr hdl info */
 #define CAM_REQ_MGR_HDL_IDX_POS           8
@@ -436,6 +437,7 @@ struct cam_mem_cache_ops_cmd {
 #define CAM_REQ_MGR_ERROR_TYPE_SOF_FREEZE       4
 #define CAM_REQ_MGR_ERROR_TYPE_FULL_RECOVERY    5
 #define CAM_REQ_MGR_ERROR_TYPE_PAGE_FAULT       6
+#define CAM_REQ_MGR_ERROR_TYPE_RESERVED         7
 
 /**
  * struct cam_req_mgr_error_msg

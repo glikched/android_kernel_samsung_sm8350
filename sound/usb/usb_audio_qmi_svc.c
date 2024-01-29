@@ -1130,6 +1130,7 @@ static void handle_uaudio_stream_req(struct qmi_handle *handle,
 	}
 
 	mutex_lock(&chip->dev_lock);
+	pr_info("%s : inside mutex\n", __func__);
 	info_idx = info_idx_from_ifnum(pcm_card_num, subs->interface,
 		req_msg->enable);
 	if (atomic_read(&chip->shutdown) || !subs->stream || !subs->stream->pcm
@@ -1175,9 +1176,11 @@ static void handle_uaudio_stream_req(struct qmi_handle *handle,
 						info->data_ep_pipe);
 			if (!ep)
 				uaudio_dbg("no data ep\n");
-			else
-				xhci_stop_endpoint(uadev[pcm_card_num].udev,
+			else {
+				ret = xhci_stop_endpoint(uadev[pcm_card_num].udev,
 						ep);
+				uaudio_dbg("xhci_stop_endpoint result1 is =%d\n", ret);
+			}
 			info->data_ep_pipe = 0;
 		}
 
@@ -1186,21 +1189,27 @@ static void handle_uaudio_stream_req(struct qmi_handle *handle,
 						info->sync_ep_pipe);
 			if (!ep)
 				uaudio_dbg("no sync ep\n");
-			else
-				xhci_stop_endpoint(uadev[pcm_card_num].udev,
+			else {
+				ret = xhci_stop_endpoint(uadev[pcm_card_num].udev,
 						ep);
+				
+				uaudio_dbg("xhci_stop_endpoint result2 is =%d\n", ret);
+			}
 			info->sync_ep_pipe = 0;
 		}
 	}
 
 	ret = snd_usb_enable_audio_stream(subs, datainterval, req_msg->enable);
+	pr_info("%s : snd_usb_enable_audio_stream : ret = %d\n", __func__, ret);
 
 	if (!ret && req_msg->enable)
 		ret = prepare_qmi_response(subs, req_msg, &resp, info_idx);
 
+	pr_info("%s : prepare_qmi_response : ret = %d\n", __func__, ret);
 	mutex_unlock(&chip->dev_lock);
 
 response:
+	pr_info("%s : response : ret = %d\n", __func__, ret);
 	if (!req_msg->enable && ret != -EINVAL && ret != -ENODEV) {
 		mutex_lock(&chip->dev_lock);
 		if (info_idx >= 0) {

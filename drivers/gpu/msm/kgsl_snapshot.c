@@ -896,6 +896,9 @@ void kgsl_device_snapshot(struct kgsl_device *device,
 	 */
 	kgsl_schedule_work(&snapshot->work);
 }
+#if defined(CONFIG_DISPLAY_SAMSUNG)
+EXPORT_SYMBOL(kgsl_device_snapshot);
+#endif
 
 /* An attribute for showing snapshot details */
 struct kgsl_snapshot_attribute {

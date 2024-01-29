@@ -1103,8 +1103,10 @@ static int kgsl_system_alloc_pages(u64 size, struct page ***pages,
 	int order = get_order(PAGE_SIZE);
 
 	local = kvcalloc(npages, sizeof(*pages), GFP_KERNEL);
-	if (!local)
+	if (!local) {
+		pr_err("kgsl_system_alloc_pages, npages = %d\n", npages);
 		return -ENOMEM;
+	}
 
 	for (i = 0; i < npages; i++) {
 		gfp_t gfp = __GFP_ZERO | __GFP_HIGHMEM |
@@ -1313,8 +1315,13 @@ int kgsl_allocate_user(struct kgsl_device *device, struct kgsl_memdesc *memdesc,
 	if (device->mmu.type == KGSL_MMU_TYPE_NONE)
 		return kgsl_alloc_contiguous(device, memdesc, size, flags,
 			priv);
-	else if (flags & KGSL_MEMFLAGS_SECURE)
-		return kgsl_allocate_secure(device, memdesc, size, flags, priv);
+	else if (flags & KGSL_MEMFLAGS_SECURE) {
+		int ret;
+		ret = kgsl_allocate_secure(device, memdesc, size, flags, priv);
+		if (ret != 0) 
+			pr_err("kgsl_allocate_secure failed\n");
+		return ret;
+	}
 
 	return kgsl_alloc_pages(device, memdesc, size, flags, priv);
 }

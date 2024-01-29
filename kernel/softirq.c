@@ -29,6 +29,8 @@
 #define CREATE_TRACE_POINTS
 #include <trace/events/irq.h>
 
+#include <linux/sec_debug.h>
+
 /*
    - No shared variables, all the data are CPU local.
    - If a softirq needs serialization, let it serialize itself
@@ -291,9 +293,15 @@ restart:
 
 		kstat_incr_softirqs_this_cpu(vec_nr);
 
+#if IS_ENABLED(CONFIG_SEC_DEBUG_SCHED_LOG)
+		sec_debug_softirq_sched_log(vec_nr, h->action, "softirq", SOFTIRQ_ENTRY);
+#endif
 		trace_softirq_entry(vec_nr);
 		h->action(h);
 		trace_softirq_exit(vec_nr);
+#if IS_ENABLED(CONFIG_SEC_DEBUG_SCHED_LOG)
+		sec_debug_softirq_sched_log(vec_nr, h->action, "softirq", SOFTIRQ_EXIT);
+#endif
 		if (unlikely(prev_count != preempt_count())) {
 			pr_err("huh, entered softirq %u %s %p with preempt_count %08x, exited with %08x?\n",
 			       vec_nr, softirq_to_name[vec_nr], h->action,
@@ -418,6 +426,10 @@ void irq_exit(void)
 	tick_irq_exit();
 	rcu_irq_exit();
 	trace_hardirq_exit(); /* must be last! */
+
+#if IS_ENABLED(CONFIG_SEC_DEBUG_MSG_LOG)
+	sec_debug_msg_log("hardirq exit");
+#endif
 }
 
 /*
@@ -524,8 +536,14 @@ static void tasklet_action_common(struct softirq_action *a,
 							&t->state))
 					BUG();
 				trace_tasklet_entry(t->func);
+#if IS_ENABLED(CONFIG_SEC_DEBUG_SCHED_LOG)
+				sec_debug_softirq_sched_log(-1, t->func, "tasklet_action", SOFTIRQ_ENTRY);
+#endif
 				t->func(t->data);
 				trace_tasklet_exit(t->func);
+#if IS_ENABLED(CONFIG_SEC_DEBUG_SCHED_LOG)
+				sec_debug_softirq_sched_log(-1, t->func, "tasklet_action", SOFTIRQ_EXIT);
+#endif
 				tasklet_unlock(t);
 				continue;
 			}

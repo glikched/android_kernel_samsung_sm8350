@@ -49,15 +49,11 @@
 			0x144 /* GSI_RING_BASE_ADDR_H */
 			0x1a4>; /* GSI_IF_STS */
 		qcom,dwc-usb3-msm-tx-fifo-size = <27696>;
-		usb-role-switch;
-		extcon = <&eud>;
 
 		interconnect-names = "usb-ddr", "usb-ipa", "ddr-usb";
 		interconnects = <&aggre1_noc MASTER_USB3_0 &mc_virt SLAVE_EBI1>,
 				<&aggre1_noc MASTER_USB3_0 &config_noc SLAVE_IPA_CFG>,
 				<&gem_noc MASTER_APPSS_PROC &config_noc SLAVE_USB3_0>;
-
-		qcom,usb-charger = <&battery_charger>;
 
 		dwc3@a600000 {
 			compatible = "snps,dwc3";
@@ -69,8 +65,6 @@
 			snps,has-lpm-erratum;
 			snps,hird-threshold = /bits/ 8 <0x0>;
 			snps,is-utmi-l1-suspend;
-			snps,dis-u1-entry-quirk;
-			snps,dis-u2-entry-quirk;
 			snps,dis_u2_susphy_quirk;
 			snps,ssp-u3-u0-quirk;
 			tx-fifo-resize;
@@ -104,12 +98,6 @@
 				qcom,data-fifo-size = <0x1800>;
 				qcom,descriptor-fifo-offset = <0x1800>;
 				qcom,descriptor-fifo-size = <0x800>;
-			};
-		};
-
-		port {
-			usb_port0: endpoint {
-				remote-endpoint = <&usb_port0_connector>;
 			};
 		};
 	};
@@ -164,7 +152,7 @@
 		reset-names = "global_phy_reset", "phy_reset";
 
 		pinctrl-names = "default";
-		pinctrl-0 = <&usb3phy_portselect_default>;
+		//pinctrl-0 = <&usb3phy_portselect_default>;
 
 		qcom,qmp-phy-reg-offset =
 			<USB3_DP_PCS_PCS_STATUS1
@@ -229,6 +217,7 @@
 			USB3_DP_QSERDES_TXA_RES_CODE_LANE_OFFSET_TX 0x16 0
 			USB3_DP_QSERDES_TXA_RES_CODE_LANE_OFFSET_RX 0x0E 0
 			USB3_DP_QSERDES_TXA_LANE_MODE_1 0x35 0
+			USB3_DP_QSERDES_TXA_LANE_MODE_2 0x82 0
 			USB3_DP_QSERDES_TXA_LANE_MODE_3 0x3F 0
 			USB3_DP_QSERDES_TXA_LANE_MODE_4 0x7F 0
 			USB3_DP_QSERDES_TXA_LANE_MODE_5 0x3F 0
@@ -276,6 +265,7 @@
 			USB3_DP_QSERDES_TXB_RES_CODE_LANE_OFFSET_TX 0x16 0
 			USB3_DP_QSERDES_TXB_RES_CODE_LANE_OFFSET_RX 0x0E 0
 			USB3_DP_QSERDES_TXB_LANE_MODE_1 0x35 0
+			USB3_DP_QSERDES_TXB_LANE_MODE_2 0x82 0
 			USB3_DP_QSERDES_TXB_LANE_MODE_3 0x3F 0
 			USB3_DP_QSERDES_TXB_LANE_MODE_4 0x7F 0
 			USB3_DP_QSERDES_TXB_LANE_MODE_5 0x3F 0

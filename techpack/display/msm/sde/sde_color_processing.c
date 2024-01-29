@@ -850,13 +850,13 @@ static int check_rc_pu_feature(struct sde_hw_dspp *hw_dspp,
 	}
 
 	if (!hw_dspp->ops.validate_rc_pu_roi) {
-		SDE_ERROR("invalid rc ops");
+		DRM_ERROR("invalid rc ops");
 		return -EINVAL;
 	}
 
 	ret = hw_dspp->ops.validate_rc_pu_roi(hw_dspp, hw_cfg);
-	if (ret)
-		SDE_ERROR("failed to validate rc pu roi, ret %d", ret);
+	if (ret < 0)
+		DRM_ERROR("failed to validate rc pu roi, ret %d", ret);
 
 	return ret;
 }

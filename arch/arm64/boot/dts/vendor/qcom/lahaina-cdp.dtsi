@@ -10,10 +10,6 @@
 	status = "ok";
 };
 
-&spmi_glink_debug {
-	status = "ok";
-};
-
 &soc {
 	gpio_keys {
 		compatible = "gpio-keys";
@@ -31,24 +27,6 @@
 			debounce-interval = <15>;
 			linux,can-disable;
 		};
-	};
-
-	qcom,qbt_handler {
-		compatible = "qcom,qbt-handler";
-		qcom,ipc-gpio = <&tlmm 38 0>;
-		qcom,finger-detect-gpio = <&tlmm 39 0>;
-	};
-
-	extcon_usb1: extcon_usb1 {
-		compatible = "linux,extcon-usb-gpio";
-		vbus-gpio =  <&pm8350_gpios 9 GPIO_ACTIVE_HIGH>;
-		id-gpio = <&tlmm 51 GPIO_ACTIVE_HIGH>;
-		vbus-out-gpio = <&pm8350_gpios 8 GPIO_ACTIVE_HIGH>;
-
-		pinctrl-names = "default";
-		pinctrl-0 = <&usb2_vbus_det_default
-			     &usb2_id_det_default
-			     &usb2_vbus_boost_default>;
 	};
 };
 
@@ -209,10 +187,6 @@
 	status = "ok";
 };
 
-&pm8350b_haptics {
-	status = "ok";
-};
-
 &pm8350b_amoled_ecm {
 	display-panels = <&dsi_sw43404_amoled_cmd
 			  &dsi_sw43404_amoled_video
@@ -256,10 +230,6 @@
 &lahaina_snd {
 	qcom,model = "lahaina-cdp-snd-card";
 	qcom,tert-mi2s-gpios = <&cdc_tert_mi2s_gpios>;
-};
-
-&usb1 {
-	extcon = <&extcon_usb1>;
 };
 
 &wil6210 {

@@ -351,7 +351,7 @@ struct dentry *msm_cvp_debugfs_init_core(struct msm_cvp_core *core,
 	dir = debugfs_create_dir(debugfs_name, parent);
 	if (IS_ERR_OR_NULL(dir)) {
 		dir = NULL;
-		dprintk(CVP_ERR, "Failed to create debugfs for msm_cvp\n");
+		dprintk(CVP_INFO, "Failed to create debugfs for msm_cvp\n");
 		goto failed_create_dir;
 	}
 	if (!debugfs_create_file("info", 0444, dir, core, &core_info_fops)) {

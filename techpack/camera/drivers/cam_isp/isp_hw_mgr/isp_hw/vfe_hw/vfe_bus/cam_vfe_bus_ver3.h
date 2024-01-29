@@ -10,10 +10,9 @@
 #include "cam_irq_controller.h"
 #include "cam_vfe_bus.h"
 
-#define CAM_VFE_BUS_VER3_MAX_SUB_GRPS        6
+#define CAM_VFE_BUS_VER3_MAX_CLIENTS     26
+#define CAM_VFE_BUS_VER3_MAX_SUB_GRPS     6
 #define CAM_VFE_BUS_VER3_MAX_MID_PER_PORT 4
-#define CAM_VFE_BUS_VER3_480_MAX_CLIENTS     26
-#define CAM_VFE_BUS_VER3_680_MAX_CLIENTS     28
 
 enum cam_vfe_bus_ver3_vfe_core_id {
 	CAM_VFE_BUS_VER3_VFE_CORE_0,
@@ -46,9 +45,6 @@ enum cam_vfe_bus_ver3_comp_grp_type {
 	CAM_VFE_BUS_VER3_COMP_GRP_11,
 	CAM_VFE_BUS_VER3_COMP_GRP_12,
 	CAM_VFE_BUS_VER3_COMP_GRP_13,
-	CAM_VFE_BUS_VER3_COMP_GRP_14,
-	CAM_VFE_BUS_VER3_COMP_GRP_15,
-	CAM_VFE_BUS_VER3_COMP_GRP_16,
 	CAM_VFE_BUS_VER3_COMP_GRP_MAX,
 };
 
@@ -77,13 +73,6 @@ enum cam_vfe_bus_ver3_vfe_out_type {
 	CAM_VFE_BUS_VER3_VFE_OUT_DS16_DISP,
 	CAM_VFE_BUS_VER3_VFE_OUT_2PD,
 	CAM_VFE_BUS_VER3_VFE_OUT_LCR,
-	CAM_VFE_BUS_VER3_VFE_OUT_AWB_BFW,
-	CAM_VFE_BUS_VER3_VFE_OUT_2PD_STATS,
-	CAM_VFE_BUS_VER3_VFE_OUT_STATS_AEC_BE,
-	CAM_VFE_BUS_VER3_VFE_OUT_LTM_STATS,
-	CAM_VFE_BUS_VER3_VFE_OUT_STATS_GTM_BHIST,
-	CAM_VFE_BUS_VER3_VFE_OUT_STATS_BE,
-	CAM_VFE_BUS_VER3_VFE_OUT_GAMMA,
 	CAM_VFE_BUS_VER3_VFE_OUT_MAX,
 };
 
@@ -126,7 +115,6 @@ struct cam_vfe_bus_ver3_reg_offset_ubwc_client {
 	uint32_t lossy_thresh1;
 	uint32_t off_lossy_var;
 	uint32_t bw_limit;
-	uint32_t ubwc_comp_en_bit;
 };
 
 /*
@@ -150,8 +138,6 @@ struct cam_vfe_bus_ver3_reg_offset_bus_client {
 	uint32_t irq_subsample_pattern;
 	uint32_t framedrop_period;
 	uint32_t framedrop_pattern;
-	uint32_t mmu_prefetch_cfg;
-	uint32_t mmu_prefetch_max_offset;
 	uint32_t burst_limit;
 	uint32_t system_cache_cfg;
 	void    *ubwc_regs;
@@ -176,8 +162,6 @@ struct cam_vfe_bus_ver3_vfe_out_hw_info {
 	uint32_t                            max_height;
 	uint32_t                            source_group;
 	uint32_t                         mid[CAM_VFE_BUS_VER3_MAX_MID_PER_PORT];
-	uint32_t                            num_wm;
-	uint32_t                            wm_idx[PLANE_MAX];
 };
 
 /*
@@ -189,29 +173,21 @@ struct cam_vfe_bus_ver3_vfe_out_hw_info {
  * @num_client:            Total number of write clients
  * @bus_client_reg:        Bus client register info
  * @vfe_out_hw_info:       VFE output capability
- * @num_comp_grp:          Number of composite groups
  * @comp_done_shift:       Mask shift for comp done mask
  * @top_irq_shift:         Mask shift for top level BUS WR irq
  * @support_consumed_addr: Indicate if bus support consumed address
- * @max_out_res:           Max vfe out resource value supported for hw
- * @supported_irq:         Mask to indicate the IRQ supported
- * @comp_cfg_needed:       Composite group config is needed for hw
  */
 struct cam_vfe_bus_ver3_hw_info {
 	struct cam_vfe_bus_ver3_reg_offset_common common_reg;
 	uint32_t num_client;
 	struct cam_vfe_bus_ver3_reg_offset_bus_client
-		bus_client_reg[CAM_VFE_BUS_VER3_680_MAX_CLIENTS];
+		bus_client_reg[CAM_VFE_BUS_VER3_MAX_CLIENTS];
 	uint32_t num_out;
 	struct cam_vfe_bus_ver3_vfe_out_hw_info
 		vfe_out_hw_info[CAM_VFE_BUS_VER3_VFE_OUT_MAX];
-	uint32_t num_comp_grp;
 	uint32_t comp_done_shift;
 	uint32_t top_irq_shift;
 	bool support_consumed_addr;
-	uint32_t max_out_res;
-	uint32_t supported_irq;
-	bool comp_cfg_needed;
 };
 
 /*

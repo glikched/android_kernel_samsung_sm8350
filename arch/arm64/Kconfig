@@ -333,6 +333,7 @@ config KASAN_SHADOW_OFFSET
 	default 0xeffffff900000000 if ARM64_VA_BITS_36 && KASAN_SW_TAGS
 	default 0xffffffffffffffff
 
+source "arch/arm64/Kconfig.projects"
 source "arch/arm64/Kconfig.platforms"
 
 menu "Kernel Features"
@@ -1832,6 +1833,51 @@ config SYSVIPC_COMPAT
 config ARCH_ENABLE_HUGEPAGE_MIGRATION
 	def_bool y
 	depends on HUGETLB_PAGE && MIGRATION
+
+menu "Hypervisor"
+config FASTUH
+	bool "Enable micro hypervisor feature"
+	depends on !SEC_FACTORY
+	default n
+	help
+	  It enables a micro hypervisor.
+	  It's samsung's hypervisor.
+	  RKP and etc can be loaded on it.
+	  please check a memory map for it.
+
+config FASTUH_RKP
+	bool "Enable RKP(Realtime Kernel Protection) feature"
+	depends on FASTUH
+	default n
+	help
+	  This solution provides the kernel protection
+	  using a security monitor located within an isolated execution environment.
+	  This isolated execution environment is either the Secure World of ARM TrustZone
+	  or a thin hypervisor that is protected by the hardware virtualization extensions.
+
+config FASTUH_KDP
+	bool "Enable KDP(Kernel Data Protection) feature"
+	depends on !SEC_VTS_TEST
+	depends on FASTUH
+	default n
+	help
+	  Prevents unauthorized cred modification,
+	  namespace modification, mapping for page table.
+
+config RKP_TEST
+	bool "Enable RKP test"
+	depends on !SAMSUNG_PRODUCT_SHIP && FASTUH_RKP
+	default n
+	help
+	  enable RKP test.
+
+config KDP_TEST
+	bool "Enable KDP test"
+	depends on !SAMSUNG_PRODUCT_SHIP && FASTUH_KDP
+	default n
+	help
+	  enable KDP test.
+endmenu
 
 menu "Power management options"
 

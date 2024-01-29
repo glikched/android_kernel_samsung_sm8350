@@ -10,7 +10,9 @@
 #include <linux/hrtimer.h>
 #include <linux/sched.h>
 #include <linux/math64.h>
-
+#if IS_ENABLED(CONFIG_SEC_INPUT_BOOSTER)
+#include <linux/pm_qos.h>
+#endif
 #include "qc_vas.h"
 #include <trace/events/sched.h>
 
@@ -130,7 +132,12 @@ void sched_update_hyst_times(void)
 		coloc_busy_pct = sysctl_sched_coloc_busy_hyst_cpu_busy_pct[cpu];
 		per_cpu(hyst_time, cpu) = (BIT(cpu)
 			     & sysctl_sched_busy_hyst_enable_cpus) ?
-			     sysctl_sched_busy_hyst : 0;
+#if IS_ENABLED(CONFIG_SEC_INPUT_BOOSTER)
+			     max(sysctl_sched_busy_hyst,
+				    (unsigned int)(pm_qos_request(PM_QOS_BIAS_HYST) * NSEC_PER_MSEC)) : 0;
+#else
+				 sysctl_sched_busy_hyst : 0;
+#endif
 		per_cpu(coloc_hyst_time, cpu) = ((BIT(cpu)
 			     & sysctl_sched_coloc_busy_hyst_enable_cpus)
 			     && rtgb_active) ?
@@ -148,6 +155,10 @@ static inline void update_busy_hyst_end_time(int cpu, bool dequeue,
 	bool nr_run_trigger = false;
 	bool load_trigger = false, coloc_load_trigger = false;
 	u64 agg_hyst_time;
+	bool is_sched_boost = false;
+
+	if (sysctl_sched_boost > 0)
+		is_sched_boost = true;
 
 	if (!per_cpu(hyst_time, cpu) && !per_cpu(coloc_hyst_time, cpu))
 		return;
@@ -162,7 +173,7 @@ static inline void update_busy_hyst_end_time(int cpu, bool dequeue,
 	if (dequeue && cpu_util(cpu) > per_cpu(coloc_hyst_busy, cpu))
 		coloc_load_trigger = true;
 
-	agg_hyst_time = max((nr_run_trigger || load_trigger) ?
+	agg_hyst_time = max((nr_run_trigger || load_trigger || is_sched_boost) ?
 				per_cpu(hyst_time, cpu) : 0,
 				(nr_run_trigger || coloc_load_trigger) ?
 				per_cpu(coloc_hyst_time, cpu) : 0);

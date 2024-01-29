@@ -52,7 +52,6 @@ struct cam_tfe_top_priv {
 	struct timeval                    epoch_ts;
 	struct timeval                    eof_ts;
 	struct timeval                    error_ts;
-	uint32_t                          top_debug;
 };
 
 struct cam_tfe_camif_data {
@@ -498,11 +497,9 @@ static int cam_tfe_rdi_irq_bottom_half(
 	bool                                  epoch_process,
 	struct cam_tfe_irq_evt_payload       *evt_payload)
 {
-	struct cam_tfe_rdi_data               *rdi_priv;
-	struct cam_isp_hw_event_info           evt_info;
-	struct cam_hw_info                    *hw_info;
-	struct cam_tfe_top_reg_offset_common  *common_reg;
-	uint32_t                               val, val2;
+	struct cam_tfe_rdi_data             *rdi_priv;
+	struct cam_isp_hw_event_info         evt_info;
+	struct cam_hw_info                  *hw_info;
 
 	rdi_priv = (struct cam_tfe_rdi_data    *)rdi_node->res_priv;
 	hw_info = rdi_node->hw_intf->hw_priv;
@@ -535,23 +532,6 @@ static int cam_tfe_rdi_irq_bottom_half(
 		if (rdi_priv->event_cb)
 			rdi_priv->event_cb(rdi_priv->priv,
 				CAM_ISP_HW_EVENT_SOF, (void *)&evt_info);
-
-		if (top_priv->top_debug &
-			CAMIF_DEBUG_ENABLE_SENSOR_DIAG_STATUS) {
-			common_reg  = rdi_priv->common_reg;
-			val = cam_io_r(rdi_priv->mem_base +
-				common_reg->diag_sensor_status_0);
-			val2 =  cam_io_r(rdi_priv->mem_base +
-				common_reg->diag_sensor_status_1);
-			CAM_INFO(CAM_ISP,
-				"TFE:%d diag sensor hbi min error:%d neq hbi:%d HBI:%d VBI:%d",
-				rdi_node->hw_intf->hw_idx,
-				((val >> common_reg->diag_min_hbi_error_shift)
-					& 0x1),
-				((val >> common_reg->diag_neq_hbi_shift) & 0x1),
-				(val & common_reg->diag_sensor_hbi_mask),
-				val2);
-		}
 	}
 
 	if (epoch_process && (evt_payload->irq_reg_val[1] &
@@ -576,11 +556,10 @@ static int cam_tfe_camif_irq_bottom_half(
 	bool                                  epoch_process,
 	struct cam_tfe_irq_evt_payload       *evt_payload)
 {
-	struct cam_tfe_camif_data             *camif_priv;
-	struct cam_isp_hw_event_info           evt_info;
-	struct cam_hw_info                    *hw_info;
-	struct cam_tfe_top_reg_offset_common  *common_reg;
-	uint32_t                              val, val2;
+	struct cam_tfe_camif_data            *camif_priv;
+	struct cam_isp_hw_event_info          evt_info;
+	struct cam_hw_info                   *hw_info;
+	uint32_t                              val;
 
 	camif_priv = camif_node->res_priv;
 	hw_info = camif_node->hw_intf->hw_priv;
@@ -627,23 +606,6 @@ static int cam_tfe_camif_irq_bottom_half(
 		if (camif_priv->event_cb)
 			camif_priv->event_cb(camif_priv->priv,
 				CAM_ISP_HW_EVENT_SOF, (void *)&evt_info);
-
-		if (top_priv->top_debug &
-			CAMIF_DEBUG_ENABLE_SENSOR_DIAG_STATUS) {
-			common_reg  = camif_priv->common_reg;
-			val = cam_io_r(camif_priv->mem_base +
-				common_reg->diag_sensor_status_0);
-			val2 =  cam_io_r(camif_priv->mem_base +
-				common_reg->diag_sensor_status_1);
-			CAM_INFO(CAM_ISP,
-				"TFE:%d diag sensor hbi min error:%d neq hbi:%d HBI:%d VBI:%d",
-				camif_node->hw_intf->hw_idx,
-				((val >> common_reg->diag_min_hbi_error_shift)
-					& 0x1),
-				((val >> common_reg->diag_neq_hbi_shift) & 0x1),
-				(val & common_reg->diag_sensor_hbi_mask),
-				val2);
-		}
 	}
 
 	if (epoch_process  && (evt_payload->irq_reg_val[1] &
@@ -658,6 +620,13 @@ static int cam_tfe_camif_irq_bottom_half(
 		if (camif_priv->event_cb)
 			camif_priv->event_cb(camif_priv->priv,
 				CAM_ISP_HW_EVENT_EPOCH, (void *)&evt_info);
+	}
+
+	if (camif_priv->camif_debug & CAMIF_DEBUG_ENABLE_SENSOR_DIAG_STATUS) {
+		val = cam_io_r(camif_priv->mem_base +
+			camif_priv->common_reg->diag_sensor_status_0);
+		CAM_DBG(CAM_ISP, "TFE_DIAG_SENSOR_STATUS: 0x%x",
+			camif_priv->mem_base, val);
 	}
 
 	return 0;
@@ -965,62 +934,6 @@ static int cam_tfe_top_set_hw_clk_rate(
 	else
 		CAM_ERR(CAM_ISP, "TFE:%d set src clock rate:%lld failed, rc=%d",
 		top_priv->common_data.soc_info->index, max_clk_rate,  rc);
-
-	return rc;
-}
-
-static int cam_tfe_top_get_hw_clk_rate(
-	struct cam_tfe_top_priv  *top_priv,
-	void                     *cmd_args,
-	uint32_t                  arg_size)
-{
-	struct cam_hw_soc_info   *soc_info;
-	uint32_t                 *curr_clk_rate;
-	int                      src_clk_idx;
-	int rc = 0;
-
-	if (!top_priv) {
-		CAM_ERR(CAM_ISP, "Error top_private NULL");
-		return -EINVAL;
-	}
-
-	soc_info = top_priv->common_data.soc_info;
-	src_clk_idx = soc_info->src_clk_idx;
-
-	curr_clk_rate = (uint32_t *)cmd_args;
-
-	rc = cam_soc_util_get_clk_rate(soc_info->clk[src_clk_idx],
-		soc_info->clk_name[src_clk_idx], curr_clk_rate);
-
-	CAM_DBG(CAM_ISP, "TFE clock rate %llu", *curr_clk_rate);
-
-	return rc;
-}
-
-static int cam_tfe_top_dynamic_clock_update(
-	struct cam_tfe_top_priv  *top_priv,
-	void                     *cmd_args,
-	uint32_t                 arg_size)
-{
-	struct cam_hw_soc_info   *soc_info;
-	int                      src_clk_idx;
-	uint32_t                 *clk_rate;
-	int rc = 0;
-
-	soc_info = top_priv->common_data.soc_info;
-	src_clk_idx = soc_info->src_clk_idx;
-
-	clk_rate = (uint32_t *)cmd_args;
-
-	CAM_DBG(CAM_ISP, "TFE clock rate %lld", *clk_rate);
-
-	rc = cam_soc_util_set_src_clk_rate(soc_info, *clk_rate);
-	if (rc) {
-		CAM_ERR(CAM_ISP,
-			"unable to set clock dynamically rate:%lld",
-			*clk_rate);
-		return rc;
-	}
 
 	return rc;
 }
@@ -1857,29 +1770,6 @@ static int cam_tfe_camif_irq_reg_dump(
 	return rc;
 }
 
-int cam_tfe_set_top_debug(struct cam_tfe_hw_core_info    *core_info,
-	void *cmd_args, uint32_t arg_size)
-{
-	struct cam_tfe_top_priv              *top_priv;
-	uint32_t                             *debug_val;
-
-	if (!cmd_args) {
-		CAM_ERR(CAM_ISP, "Error! Invalid input arguments");
-		return -EINVAL;
-	}
-
-	top_priv = (struct cam_tfe_top_priv  *)core_info->top_priv;
-	debug_val = (uint32_t  *)cmd_args;
-	top_priv->top_debug =  *debug_val;
-
-	CAM_DBG(CAM_ISP, "TFE:%d top debug set:%d",
-		core_info->core_index,
-		top_priv->top_debug);
-
-	return 0;
-}
-
-
 int cam_tfe_top_reserve(void *device_priv,
 	void *reserve_args, uint32_t arg_size)
 {
@@ -2020,7 +1910,6 @@ static int cam_tfe_camif_resource_start(
 {
 	struct cam_tfe_camif_data           *rsrc_data;
 	struct cam_tfe_soc_private          *soc_private;
-	struct cam_tfe_top_priv             *top_priv;
 	uint32_t                             val = 0;
 	uint32_t                             epoch0_irq_mask;
 	uint32_t                             epoch1_irq_mask;
@@ -2040,7 +1929,6 @@ static int cam_tfe_camif_resource_start(
 
 	rsrc_data = (struct cam_tfe_camif_data  *)camif_res->res_priv;
 	soc_private = rsrc_data->soc_info->soc_private;
-	top_priv = (struct cam_tfe_top_priv  *)core_info->top_priv;
 
 	if (!soc_private) {
 		CAM_ERR(CAM_ISP, "TFE:%d Error soc_private NULL",
@@ -2119,7 +2007,7 @@ static int cam_tfe_camif_resource_start(
 	rsrc_data->enable_sof_irq_debug = false;
 	rsrc_data->irq_debug_cnt = 0;
 
-	if (top_priv->top_debug & CAMIF_DEBUG_ENABLE_SENSOR_DIAG_STATUS) {
+	if (rsrc_data->camif_debug & CAMIF_DEBUG_ENABLE_SENSOR_DIAG_STATUS) {
 		val = cam_io_r_mb(rsrc_data->mem_base +
 			rsrc_data->common_reg->diag_config);
 		val |= rsrc_data->reg_data->enable_diagnostic_hw;
@@ -2220,17 +2108,6 @@ int cam_tfe_top_start(struct cam_tfe_hw_core_info *core_info,
 			cam_tfe_irq_config(core_info,
 				rsrc_rdi_data->reg_data->subscribe_irq_mask,
 				CAM_TFE_TOP_IRQ_REG_NUM, true);
-
-		if (top_priv->top_debug &
-			CAMIF_DEBUG_ENABLE_SENSOR_DIAG_STATUS) {
-			val = cam_io_r_mb(rsrc_rdi_data->mem_base +
-				rsrc_rdi_data->common_reg->diag_config);
-			val |= ((rsrc_rdi_data->reg_data->enable_diagnostic_hw)|
-				(rsrc_rdi_data->reg_data->diag_sensor_sel <<
-				rsrc_rdi_data->reg_data->diag_sensor_shift));
-			cam_io_w_mb(val, rsrc_rdi_data->mem_base +
-				rsrc_rdi_data->common_reg->diag_config);
-		}
 
 		CAM_DBG(CAM_ISP, "TFE:%d Start RDI %d", core_info->core_index,
 			in_res->res_id - CAM_ISP_HW_TFE_IN_RDI0);
@@ -2885,7 +2762,6 @@ int cam_tfe_process_cmd(void *hw_priv, uint32_t cmd_type,
 	struct cam_hw_soc_info            *soc_info = NULL;
 	struct cam_tfe_hw_core_info       *core_info = NULL;
 	struct cam_tfe_hw_info            *hw_info = NULL;
-
 	int rc = 0;
 
 	if (!hw_priv) {
@@ -2932,18 +2808,6 @@ int cam_tfe_process_cmd(void *hw_priv, uint32_t cmd_type,
 	case CAM_ISP_HW_CMD_DUMP_HW:
 		rc = cam_tfe_hw_dump(core_info,
 			cmd_args, arg_size);
-		break;
-	case CAM_ISP_HW_CMD_SET_CAMIF_DEBUG:
-		rc = cam_tfe_set_top_debug(core_info, cmd_args,
-			arg_size);
-		break;
-	case CAM_ISP_HW_CMD_GET_CLOCK_RATE:
-		rc = cam_tfe_top_get_hw_clk_rate(core_info->top_priv, cmd_args,
-			arg_size);
-		break;
-	case CAM_ISP_HW_CMD_DYNAMIC_CLOCK_UPDATE:
-		rc = cam_tfe_top_dynamic_clock_update(core_info->top_priv, cmd_args,
-			arg_size);
 		break;
 	case CAM_ISP_HW_CMD_GET_BUF_UPDATE:
 	case CAM_ISP_HW_CMD_GET_HFR_UPDATE:

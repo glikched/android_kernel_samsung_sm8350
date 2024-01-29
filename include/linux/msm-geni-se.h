@@ -68,7 +68,9 @@ struct se_geni_rsc {
 	unsigned long ib;
 	unsigned long ib_noc;
 	struct pinctrl *geni_pinctrl;
+#if defined(CONFIG_QC_BT_UART)
 	struct pinctrl_state *geni_gpio_shutdown;
+#endif
 	struct pinctrl_state *geni_gpio_active;
 	struct pinctrl_state *geni_gpio_sleep;
 	int	clk_freq_out;
@@ -80,7 +82,9 @@ struct se_geni_rsc {
 #define PINCTRL_DEFAULT	"default"
 #define PINCTRL_ACTIVE	"active"
 #define PINCTRL_SLEEP	"sleep"
+#if defined(CONFIG_QC_BT_UART)
 #define PINCTRL_SHUTDOWN	"shutdown"
+#endif
 
 #define KHz(freq) (1000 * (freq))
 
@@ -841,11 +845,14 @@ int geni_se_iommu_free_buf(struct device *wrapper_dev, dma_addr_t *iova,
 void geni_se_dump_dbg_regs(struct se_geni_rsc *rsc, void __iomem *base,
 				void *ipc);
 
+#if defined(CONFIG_QC_BT_UART)
 /*
  * This function is used to remove proxy ICC BW vote put from common driver
  * probe on behalf of earlycon usecase.
  */
 void geni_se_remove_earlycon_icc_vote(struct device *dev);
+#endif
+
 #else
 static inline unsigned int geni_read_reg_nolog(void __iomem *base, int offset)
 {

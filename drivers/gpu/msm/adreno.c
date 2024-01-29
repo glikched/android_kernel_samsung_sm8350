@@ -551,6 +551,9 @@ void adreno_hang_int_callback(struct adreno_device *adreno_dev, int bit)
 {
 	dev_crit_ratelimited(KGSL_DEVICE(adreno_dev)->dev,
 				"MISC: GPU hang detected\n");
+#if defined(CONFIG_DISPLAY_SAMSUNG) && defined(CONFIG_SEC_ABC)
+	sec_abc_send_event("MODULE=gpu_qc@ERROR=gpu_fault");
+#endif 
 	adreno_irqctrl(adreno_dev, 0);
 
 	/* Trigger a fault in the dispatcher - this will effect a restart */
@@ -1210,8 +1213,11 @@ static int adreno_read_speed_bin(struct platform_device *pdev)
 
 	if (ret) {
 		/* If the nvmem node isn't there, try legacy */
-		if (ret == -ENOENT)
+		if (ret == -ENOENT) {
+			dev_err(&pdev->dev,
+				"ret == -ENOENT at <%s: %d>", __FILE__, __LINE__);
 			return adreno_read_speed_bin_legacy(pdev);
+		}
 
 		return ret;
 	}
@@ -1551,6 +1557,7 @@ int adreno_device_probe(struct platform_device *pdev,
 
 	adreno_debugfs_init(adreno_dev);
 	adreno_profile_init(adreno_dev);
+	
 
 	adreno_dev->perfcounter = false;
 
@@ -3366,8 +3373,11 @@ static int adreno_waittimestamp(struct kgsl_device *device,
 	}
 
 	/* Return -ENOENT if the context has been detached */
-	if (kgsl_context_detached(context))
+	if (kgsl_context_detached(context)) {
+		dev_err(device->dev,
+			"return -ENOENT at <%s: %d>", __FILE__, __LINE__);
 		return -ENOENT;
+	}
 
 	ret = adreno_drawctxt_wait(ADRENO_DEVICE(device), context,
 		timestamp, msecs);

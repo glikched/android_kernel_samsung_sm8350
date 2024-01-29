@@ -56,6 +56,11 @@
 /*Default tearcheck window size as programmed by MDP*/
 #define TEARCHECK_WINDOW_SIZE	5
 
+#if defined(CONFIG_DISPLAY_SAMSUNG)
+/* max size supported for dsi cmd transfer using DMA */
+#define DSI_CTRL_MAX_CMD_FET_MEMORY_SIZE 200
+#endif
+
 /**
  * enum dsi_power_state - defines power states for dsi controller.
  * @DSI_CTRL_POWER_VREG_OFF:    Digital and analog supplies for DSI controller
@@ -587,6 +592,19 @@ int dsi_ctrl_cmd_transfer(struct dsi_ctrl *dsi_ctrl,
  * Return: error code.
  */
 int dsi_ctrl_cmd_tx_trigger(struct dsi_ctrl *dsi_ctrl, u32 flags);
+
+#if defined(CONFIG_DISPLAY_SAMSUNG)
+/**
+ * dsi_ctrl_update_host_engine_state_for_cont_splash() - update engine
+ *                                 states for cont splash usecase
+ * @dsi_ctrl:              DSI controller handle.
+ * @state:                 DSI engine state
+ *
+ * Return: error code.
+ */
+int dsi_ctrl_update_host_engine_state_for_cont_splash(struct dsi_ctrl *dsi_ctrl,
+				enum dsi_engine_state state);
+#endif
 
 /**
  * dsi_ctrl_set_power_state() - set power state for dsi controller

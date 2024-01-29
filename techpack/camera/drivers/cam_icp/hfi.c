@@ -31,7 +31,6 @@
 #define HFI_VERSION_INFO_STEP_BMSK   0xFF
 #define HFI_VERSION_INFO_STEP_SHFT  0
 
-#define HFI_MAX_POLL_TRY 5
 #define HFI_POLL_DELAY_US 100
 #define HFI_POLL_TIMEOUT_US 10000
 
@@ -62,76 +61,47 @@ static void __iomem *hfi_iface_addr(struct hfi_info *hfi)
 	return IS_ERR_OR_NULL(ret) ? NULL : ret;
 }
 
-static void hfi_queue_dump(uint32_t *dwords, int count)
-{
-	int i;
-	int rows;
-	int remaining;
-
-	rows = count / 4;
-	remaining = count % 4;
-
-	for (i = 0; i < rows; i++, dwords += 4)
-		CAM_DBG(CAM_HFI,
-			"word[%04d]: 0x%08x 0x%08x 0x%08x 0x%08x",
-			i * 4, dwords[0], dwords[1], dwords[2], dwords[3]);
-
-	if (remaining == 1)
-		CAM_DBG(CAM_HFI, "word[%04d]: 0x%08x", rows * 4, dwords[0]);
-	else if (remaining == 2)
-		CAM_DBG(CAM_HFI, "word[%04d]: 0x%08x 0x%08x",
-			rows * 4, dwords[0], dwords[1]);
-	else if (remaining == 3)
-		CAM_DBG(CAM_HFI, "word[%04d]: 0x%08x 0x%08x 0x%08x",
-			rows * 4, dwords[0], dwords[1], dwords[2]);
-}
-
 void cam_hfi_queue_dump(void)
 {
-	struct hfi_mem_info *hfi_mem = &g_hfi->map;
 	struct hfi_qtbl *qtbl;
-	struct hfi_q_hdr *q_hdr;
-	uint32_t *dwords;
-	int num_dwords;
+	struct hfi_qtbl_hdr *qtbl_hdr;
+	struct hfi_q_hdr *cmd_q_hdr, *msg_q_hdr;
+	struct hfi_mem_info *hfi_mem = NULL;
+	uint32_t *read_q, *read_ptr;
+	int i;
 
+	hfi_mem = &g_hfi->map;
 	if (!hfi_mem) {
-		CAM_ERR(CAM_HFI, "hfi mem info NULL... unable to dump queues");
+		CAM_ERR(CAM_HFI, "Unable to dump queues hfi memory is NULL");
 		return;
 	}
 
 	qtbl = (struct hfi_qtbl *)hfi_mem->qtbl.kva;
+	qtbl_hdr = &qtbl->q_tbl_hdr;
 	CAM_DBG(CAM_HFI,
-		"qtbl header: version=0x%08x tbl_size=%u numq=%u qhdr_size=%u",
-		qtbl->q_tbl_hdr.qtbl_version,
-		qtbl->q_tbl_hdr.qtbl_size,
-		qtbl->q_tbl_hdr.qtbl_num_q,
-		qtbl->q_tbl_hdr.qtbl_qhdr_size);
+		"qtbl: version = %x size = %u num q = %u qhdr_size = %u",
+		qtbl_hdr->qtbl_version, qtbl_hdr->qtbl_size,
+		qtbl_hdr->qtbl_num_q, qtbl_hdr->qtbl_qhdr_size);
 
-	q_hdr = &qtbl->q_hdr[Q_CMD];
-	CAM_DBG(CAM_HFI,
-		"cmd_q: addr=0x%08x size=%u read_idx=%u write_idx=%u",
-		hfi_mem->cmd_q.iova,
-		q_hdr->qhdr_q_size,
-		q_hdr->qhdr_read_idx,
-		q_hdr->qhdr_write_idx);
+	cmd_q_hdr = &qtbl->q_hdr[Q_CMD];
+	CAM_DBG(CAM_HFI, "cmd: size = %u r_idx = %u w_idx = %u addr = %x",
+		cmd_q_hdr->qhdr_q_size, cmd_q_hdr->qhdr_read_idx,
+		cmd_q_hdr->qhdr_write_idx, hfi_mem->cmd_q.iova);
+	read_q = (uint32_t *)g_hfi->map.cmd_q.kva;
+	read_ptr = (uint32_t *)(read_q + 0);
+	CAM_DBG(CAM_HFI, "CMD Q START");
+	for (i = 0; i < ICP_CMD_Q_SIZE_IN_BYTES >> BYTE_WORD_SHIFT; i++)
+		CAM_DBG(CAM_HFI, "Word: %d Data: 0x%08x ", i, read_ptr[i]);
 
-	dwords = (uint32_t *)hfi_mem->cmd_q.kva;
-	num_dwords = ICP_CMD_Q_SIZE_IN_BYTES >> BYTE_WORD_SHIFT;
-
-	hfi_queue_dump(dwords, num_dwords);
-
-	q_hdr = &qtbl->q_hdr[Q_MSG];
-	CAM_DBG(CAM_HFI,
-		"msg_q: addr=0x%08x size=%u read_idx=%u write_idx=%u",
-		hfi_mem->msg_q.iova,
-		q_hdr->qhdr_q_size,
-		q_hdr->qhdr_read_idx,
-		q_hdr->qhdr_write_idx);
-
-	dwords = (uint32_t *)hfi_mem->msg_q.kva;
-	num_dwords = ICP_MSG_Q_SIZE_IN_BYTES >> BYTE_WORD_SHIFT;
-
-	hfi_queue_dump(dwords, num_dwords);
+	msg_q_hdr = &qtbl->q_hdr[Q_MSG];
+	CAM_DBG(CAM_HFI, "msg: size = %u r_idx = %u w_idx = %u addr = %x",
+		msg_q_hdr->qhdr_q_size, msg_q_hdr->qhdr_read_idx,
+		msg_q_hdr->qhdr_write_idx, hfi_mem->msg_q.iova);
+	read_q = (uint32_t *)g_hfi->map.msg_q.kva;
+	read_ptr = (uint32_t *)(read_q + 0);
+	CAM_DBG(CAM_HFI, "MSG Q START");
+	for (i = 0; i < ICP_MSG_Q_SIZE_IN_BYTES >> BYTE_WORD_SHIFT; i++)
+		CAM_DBG(CAM_HFI, "Word: %d Data: 0x%08x ", i, read_ptr[i]);
 }
 
 int hfi_write_cmd(void *cmd_ptr)
@@ -650,11 +620,10 @@ int cam_hfi_init(struct hfi_mem_info *hfi_mem, const struct hfi_ops *hfi_ops,
 		void *priv, uint8_t event_driven_mode)
 {
 	int rc = 0;
+	uint32_t status = 0;
 	struct hfi_qtbl *qtbl;
 	struct hfi_qtbl_hdr *qtbl_hdr;
 	struct hfi_q_hdr *cmd_q_hdr, *msg_q_hdr, *dbg_q_hdr;
-	uint32_t fw_version, status = 0;
-	uint32_t retry_cnt = 0;
 	struct sfr_buf *sfr_buffer;
 	void __iomem *icp_base;
 
@@ -840,36 +809,17 @@ int cam_hfi_init(struct hfi_mem_info *hfi_mem, const struct hfi_ops *hfi_ops,
 		hfi_mem->io_mem.iova, hfi_mem->io_mem.len,
 		hfi_mem->io_mem2.iova, hfi_mem->io_mem2.len);
 
-	fw_version = cam_io_r(icp_base + HFI_REG_FW_VERSION);
-
-	while (retry_cnt < HFI_MAX_POLL_TRY) {
-		readw_poll_timeout((icp_base + HFI_REG_ICP_HOST_INIT_RESPONSE),
+	if (readl_poll_timeout(icp_base + HFI_REG_ICP_HOST_INIT_RESPONSE,
 			       status, status == ICP_INIT_RESP_SUCCESS,
-			       HFI_POLL_DELAY_US, HFI_POLL_TIMEOUT_US);
-		CAM_DBG(CAM_HFI, "1: status = %u rc = %d", status, rc);
-		status = cam_io_r_mb(icp_base + HFI_REG_ICP_HOST_INIT_RESPONSE);
-		CAM_DBG(CAM_HFI, "2: status = %u rc = %d", status, rc);
-		if (status == ICP_INIT_RESP_SUCCESS)
-			break;
-
-		if (status == ICP_INIT_RESP_FAILED) {
-			CAM_ERR(CAM_HFI,
-				"ICP Init Failed. status %u fw version :[%x]",
-				status, fw_version);
-			goto regions_fail;
-		}
-		retry_cnt++;
-	}
-
-	if ((retry_cnt == HFI_MAX_POLL_TRY) &&
-		(status != ICP_INIT_RESP_SUCCESS)) {
-		CAM_ERR(CAM_HFI,
-			"Reached Max retries. status = %u fw version : [%x]",
-				status, fw_version);
+			       HFI_POLL_DELAY_US, HFI_POLL_TIMEOUT_US)) {
+		CAM_ERR(CAM_HFI, "response poll timed out: status=0x%08x",
+			status);
+		rc = -ETIMEDOUT;
 		goto regions_fail;
 	}
 
-	CAM_INFO(CAM_HFI, "fw version : [%x]", fw_version);
+	CAM_DBG(CAM_HFI, "ICP fw version: 0x%x",
+		cam_io_r(icp_base + HFI_REG_FW_VERSION));
 
 	g_hfi->hfi_state = HFI_READY;
 	g_hfi->cmd_q_state = true;

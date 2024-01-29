@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2017-2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2017-2020, The Linux Foundation. All rights reserved.
  */
 
 #include "cam_sensor_dev.h"
@@ -9,7 +9,29 @@
 #include "cam_sensor_core.h"
 #include "camera_main.h"
 
-static int cam_sensor_subdev_close_internal(struct v4l2_subdev *sd,
+static long cam_sensor_subdev_ioctl(struct v4l2_subdev *sd,
+	unsigned int cmd, void *arg)
+{
+	int rc = 0;
+	struct cam_sensor_ctrl_t *s_ctrl =
+		v4l2_get_subdevdata(sd);
+
+	switch (cmd) {
+	case VIDIOC_CAM_CONTROL:
+		rc = cam_sensor_driver_cmd(s_ctrl, arg);
+		if (rc < 0)
+			CAM_ERR(CAM_SENSOR,
+				"Failed in Driver cmd: %d", rc);
+		break;
+	default:
+		CAM_ERR(CAM_SENSOR, "Invalid ioctl cmd: %d", cmd);
+		rc = -ENOIOCTLCMD;
+		break;
+	}
+	return rc;
+}
+
+static int cam_sensor_subdev_close(struct v4l2_subdev *sd,
 	struct v4l2_subdev_fh *fh)
 {
 	struct cam_sensor_ctrl_t *s_ctrl =
@@ -25,49 +47,6 @@ static int cam_sensor_subdev_close_internal(struct v4l2_subdev *sd,
 	mutex_unlock(&(s_ctrl->cam_sensor_mutex));
 
 	return 0;
-}
-
-static int cam_sensor_subdev_close(struct v4l2_subdev *sd,
-	struct v4l2_subdev_fh *fh)
-{
-	bool crm_active = cam_req_mgr_is_open(CAM_SENSOR);
-
-	if (crm_active) {
-		CAM_DBG(CAM_SENSOR, "CRM is ACTIVE, close should be from CRM");
-		return 0;
-	}
-
-	return cam_sensor_subdev_close_internal(sd, fh);
-}
-
-static long cam_sensor_subdev_ioctl(struct v4l2_subdev *sd,
-	unsigned int cmd, void *arg)
-{
-	int rc = 0;
-	struct cam_sensor_ctrl_t *s_ctrl =
-		v4l2_get_subdevdata(sd);
-
-	switch (cmd) {
-	case VIDIOC_CAM_CONTROL:
-		rc = cam_sensor_driver_cmd(s_ctrl, arg);
-		if (rc)
-			CAM_ERR(CAM_SENSOR,
-				"Failed in Driver cmd: %d", rc);
-		break;
-	case CAM_SD_SHUTDOWN:
-		if (!cam_req_mgr_is_shutdown()) {
-			CAM_ERR(CAM_CORE, "SD shouldn't come from user space");
-			return 0;
-		}
-
-		rc = cam_sensor_subdev_close_internal(sd, NULL);
-		break;
-	default:
-		CAM_ERR(CAM_SENSOR, "Invalid ioctl cmd: %d", cmd);
-		rc = -ENOIOCTLCMD;
-		break;
-	}
-	return rc;
 }
 
 #ifdef CONFIG_COMPAT
@@ -143,11 +122,9 @@ static int cam_sensor_init_subdev_params(struct cam_sensor_ctrl_t *s_ctrl)
 	s_ctrl->v4l2_dev_str.ent_function =
 		CAM_SENSOR_DEVICE_TYPE;
 	s_ctrl->v4l2_dev_str.token = s_ctrl;
-	s_ctrl->v4l2_dev_str.close_seq_prior =
-		CAM_SD_CLOSE_MEDIUM_PRIORITY;
 
 	rc = cam_register_subdev(&(s_ctrl->v4l2_dev_str));
-	if (rc)
+	if ((rc < 0) && (rc != -EPROBE_DEFER))
 		CAM_ERR(CAM_SENSOR, "Fail with cam_register_subdev rc: %d", rc);
 
 	return rc;
@@ -232,6 +209,11 @@ static int32_t cam_sensor_driver_i2c_probe(struct i2c_client *client,
 	s_ctrl->bridge_intf.ops.flush_req = cam_sensor_flush_request;
 
 	s_ctrl->sensordata->power_info.dev = soc_info->dev;
+
+#if defined(CONFIG_CAMERA_FRAME_CNT_DBG)
+	s_ctrl->is_thread_started = false;
+	s_ctrl->sensor_thread = NULL;
+#endif
 
 	return rc;
 free_perframe:
@@ -325,6 +307,11 @@ static int cam_sensor_component_bind(struct device *dev,
 	platform_set_drvdata(pdev, s_ctrl);
 	s_ctrl->sensor_state = CAM_SENSOR_INIT;
 	CAM_DBG(CAM_SENSOR, "Component bound successfully");
+
+#if defined(CONFIG_CAMERA_FRAME_CNT_DBG)
+	s_ctrl->is_thread_started = false;
+	s_ctrl->sensor_thread = NULL;
+#endif
 
 	return rc;
 
@@ -448,6 +435,9 @@ static struct i2c_driver cam_sensor_driver_i2c = {
 	.remove = cam_sensor_driver_i2c_remove,
 	.driver = {
 		.name = SENSOR_DRIVER_I2C,
+		.owner = THIS_MODULE,
+		.of_match_table = cam_sensor_driver_dt_match,
+		.suppress_bind_attrs = true,
 	},
 };
 

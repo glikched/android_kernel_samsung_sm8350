@@ -1010,6 +1010,7 @@ int sde_rsc_client_state_update(struct sde_rsc_client *caller_client,
 
 	pr_debug("state switch successfully complete: %d\n", state);
 	SDE_ATRACE_INT("rsc_state", state);
+	rsc->update_tcs_content = true;
 	SDE_EVT32(caller_client->id, caller_client->current_state,
 			state, rsc->current_state, SDE_EVTLOG_FUNC_EXIT);
 	rsc->current_state = state;
@@ -1113,7 +1114,6 @@ int sde_rsc_client_trigger_vote(struct sde_rsc_client *caller_client,
 			}
 		}
 
-		rpmh_invalidate(rsc->rpmh_dev);
 		for (i = 0; i < SDE_POWER_HANDLE_DBUS_ID_MAX; i++)
 			sde_power_data_bus_set_quota(&rsc->phandle,
 				i, rsc->bw_config.ab_vote[i],

@@ -272,7 +272,9 @@ static int cam_cpas_parse_node_tree(struct cam_cpas *cpas_core,
 				if (soc_private->bus_icc_based) {
 					struct of_phandle_args src_args = {0},
 						dst_args = {0};
-
+#if defined(CONFIG_SAMSUNG_SBI_QOS_TUNE)
+					cpas_core->axi_port[mnoc_idx].bus_client.common_data.num_additional_paths = 0;
+#endif
 					rc = of_property_read_string(mnoc_node,
 						"interconnect-names",
 						&cpas_core->axi_port[mnoc_idx]
@@ -329,6 +331,63 @@ static int cam_cpas_parse_node_tree(struct cam_cpas *cpas_core,
 					.common_data.dst_id = dst_args.args[0];
 					cpas_core->axi_port[mnoc_idx].bus_client
 						.common_data.num_usecases = 2;
+#if defined(CONFIG_SAMSUNG_SBI_QOS_TUNE)
+					/* optional additional paths */
+					rc = of_parse_phandle_with_args(
+						mnoc_node, "interconnects",
+						"#interconnect-cells", 2,
+						&src_args);
+					if (rc) {
+						CAM_WARN(CAM_CPAS,
+							"failed to read additional axi bus src info rc=%d",
+							rc);
+					} else {
+
+						of_node_put(src_args.np);
+						if (src_args.args_count != 1) {
+							CAM_ERR(CAM_CPAS,
+								"Invalid number of axi src args: %d",
+								src_args.args_count);
+							return -EINVAL;
+						}
+
+						cpas_core->axi_port[mnoc_idx].bus_client
+						.common_data.add_src_id[0] = src_args.args[0];
+
+						rc = of_parse_phandle_with_args(
+							mnoc_node, "interconnects",
+							"#interconnect-cells", 3,
+							&dst_args);
+						if (rc) {
+							CAM_ERR(CAM_CPAS,
+								"failed to read axi bus dst info rc=%d",
+								rc);
+							return -EINVAL;
+						}
+
+						of_node_put(dst_args.np);
+						if (dst_args.args_count != 1) {
+							CAM_ERR(CAM_CPAS,
+								"Invalid number of axi dst args: %d",
+								dst_args.args_count);
+							return -EINVAL;
+						}
+
+						cpas_core->axi_port[mnoc_idx].bus_client
+						.common_data.add_dst_id[0] = dst_args.args[0];
+
+						cpas_core->axi_port[mnoc_idx].bus_client
+						.common_data.num_additional_paths = 1;
+
+						CAM_DBG(CAM_CPAS, "[%s] : Additional path src=%d dst=%d",
+							cpas_core->axi_port[mnoc_idx].bus_client
+							.common_data.name,
+							cpas_core->axi_port[mnoc_idx].bus_client
+							.common_data.add_src_id[0],
+							cpas_core->axi_port[mnoc_idx].bus_client
+							.common_data.add_dst_id[0]);
+					}
+#endif
 				} else {
 					rc =  of_property_read_string(
 						curr_node, "qcom,axi-port-name",

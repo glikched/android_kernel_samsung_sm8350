@@ -4,118 +4,10 @@
 	#cooling-cells = <2>;
 };
 
-&battery_charger {
-	#cooling-cells = <2>;
-};
-
 &thermal_zones {
-	socd {
-		cooling-maps {
-			socd_cpu4 {
-				trip = <&socd_trip>;
-				cooling-device = <&cpu4_isolate 1 1>;
-			};
-
-			socd_cpu5 {
-				trip = <&socd_trip>;
-				cooling-device = <&cpu5_isolate 1 1>;
-			};
-
-			socd_cpu6 {
-				trip = <&socd_trip>;
-				cooling-device = <&cpu6_isolate 1 1>;
-			};
-
-			socd_cpu7 {
-				trip = <&socd_trip>;
-				cooling-device = <&cpu7_isolate 1 1>;
-			};
-		};
-	};
-
-
-	pm8350b-bcl-lvl0 {
-		cooling-maps {
-			vbat_modem_l3 {
-				trip = <&b_bcl_lvl0>;
-				cooling-device = <&modem_tj 3 3>;
-			};
-
-			vbat_gpu0 {
-				trip = <&b_bcl_lvl0>;
-				cooling-device = <&msm_gpu 2 2>;
-			};
-
-			vbat_cpu4 {
-				trip = <&b_bcl_lvl0>;
-				cooling-device = <&cpu4_isolate 1 1>;
-			};
-
-			vbat_cpu5 {
-				trip = <&b_bcl_lvl0>;
-				cooling-device = <&cpu5_isolate 1 1>;
-			};
-
-			vbat_cdsp0 {
-				trip = <&b_bcl_lvl0>;
-				cooling-device = <&cdsp_sw 2 2>;
-			};
-		};
-	};
-
-	pm8350b-bcl-lvl1 {
-		cooling-maps {
-			vbat_gpu1 {
-				trip = <&b_bcl_lvl1>;
-				cooling-device = <&msm_gpu 4 4>;
-			};
-
-			vbat_cpu6 {
-				trip = <&b_bcl_lvl1>;
-				cooling-device = <&cpu6_isolate 1 1>;
-			};
-
-			vbat_cpu7 {
-				trip = <&b_bcl_lvl1>;
-				cooling-device = <&cpu7_isolate 1 1>;
-			};
-
-			vbat_cdsp1 {
-				trip = <&b_bcl_lvl1>;
-				cooling-device = <&cdsp_sw 4 4>;
-			};
-		};
-	};
-
-	pm8350b-bcl-lvl2 {
-		cooling-maps {
-			vbat_gpu2 {
-				trip = <&b_bcl_lvl2>;
-				cooling-device = <&msm_gpu THERMAL_MAX_LIMIT
-							THERMAL_MAX_LIMIT>;
-			};
-
-			vbat_cdsp2 {
-				trip = <&b_bcl_lvl2>;
-				cooling-device = <&cdsp_sw THERMAL_MAX_LIMIT
-							THERMAL_MAX_LIMIT>;
-			};
-		};
-	};
-
 	pm8350c-bcl-lvl0 {
 		disable-thermal-zone;
 		cooling-maps {
-			vph_modem_l3 {
-				trip = <&c_bcl_lvl0>;
-				cooling-device = <&modem_tj 3 3>;
-			};
-
-			vph_gpu0 {
-				trip = <&c_bcl_lvl0>;
-				cooling-device = <&msm_gpu 2 2>;
-			};
-
 			vph_cpu4 {
 				trip = <&c_bcl_lvl0>;
 				cooling-device = <&cpu4_isolate 1 1>;
@@ -124,6 +16,11 @@
 			vph_cpu5 {
 				trip = <&c_bcl_lvl0>;
 				cooling-device = <&cpu5_isolate 1 1>;
+			};
+
+			vph_gpu0 {
+				trip = <&c_bcl_lvl0>;
+				cooling-device = <&msm_gpu 2 2>;
 			};
 
 			vph_cdsp0 {
@@ -136,11 +33,6 @@
 	pm8350c-bcl-lvl1 {
 		disable-thermal-zone;
 		cooling-maps {
-			vph_gpu1 {
-				trip = <&c_bcl_lvl1>;
-				cooling-device = <&msm_gpu 4 4>;
-			};
-
 			vph_cpu6 {
 				trip = <&c_bcl_lvl1>;
 				cooling-device = <&cpu6_isolate 1 1>;
@@ -149,6 +41,11 @@
 			vph_cpu7 {
 				trip = <&c_bcl_lvl1>;
 				cooling-device = <&cpu7_isolate 1 1>;
+			};
+
+			vph_gpu1 {
+				trip = <&c_bcl_lvl1>;
+				cooling-device = <&msm_gpu 4 4>;
 			};
 
 			vph_cdsp1 {
@@ -170,17 +67,6 @@
 			vph_cdsp2 {
 				trip = <&c_bcl_lvl2>;
 				cooling-device = <&cdsp_sw THERMAL_MAX_LIMIT
-							THERMAL_MAX_LIMIT>;
-			};
-		};
-	};
-
-	pm8350b_tz {
-		cooling-maps {
-			battery_cdev {
-				trip = <&pm8350b_trip0>;
-				cooling-device = <&battery_charger
-							THERMAL_MAX_LIMIT
 							THERMAL_MAX_LIMIT>;
 			};
 		};

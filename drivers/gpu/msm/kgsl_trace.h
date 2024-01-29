@@ -19,6 +19,13 @@
 #include "kgsl_drawobj.h"
 #include "kgsl_sharedmem.h"
 
+#if defined(CONFIG_DISPLAY_SAMSUNG)
+#if defined(CONFIG_SEC_ABC)
+#include <linux/sti/abc_common.h>
+#endif
+#include "../../../techpack/display/msm/samsung/ss_dpui_common.h"
+#endif
+
 #define show_memtype(type) \
 	__print_symbolic(type, \
 		{ KGSL_MEM_ENTRY_KERNEL, "gpumem" }, \

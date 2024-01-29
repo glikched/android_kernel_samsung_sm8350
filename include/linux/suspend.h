@@ -588,6 +588,10 @@ static inline void page_key_read(unsigned long *pfn) {}
 static inline void page_key_memorize(unsigned long *pfn) {}
 static inline void page_key_write(void *address) {}
 
+#if IS_ENABLED(CONFIG_SEC_PM)
+int wakeup_sources_stats_active(void);
+#endif
+
 #endif /* !CONFIG_ARCH_SAVE_PAGE_KEYS */
 
 #endif /* _LINUX_SUSPEND_H */

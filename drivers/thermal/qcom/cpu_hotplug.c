@@ -93,10 +93,22 @@ static int cpu_hot_set_cur_state(struct thermal_cooling_device *cdev,
 		ret = device_offline(cpu_dev);
 		if (ret < 0)
 			pr_err("CPU:%d offline error:%d\n", cpu, ret);
+#if IS_ENABLED(CONFIG_SEC_PM) && IS_ENABLED(CONFIG_SEC_THERMAL_LOG)
+		else {
+			THERMAL_IPC_LOG("offline cpu%d\n", cpu);
+			ss_thermal_print("offline cpu%d\n", cpu);
+		}
+#endif
 	} else {
 		ret = device_online(cpu_dev);
 		if (ret)
 			pr_err("CPU:%d online error:%d\n", cpu, ret);
+#if IS_ENABLED(CONFIG_SEC_PM) && IS_ENABLED(CONFIG_SEC_THERMAL_LOG)
+		else {
+			THERMAL_IPC_LOG("online cpu%d\n", cpu);
+			ss_thermal_print("online cpu%d\n", cpu);
+		}
+#endif
 	}
 	if (ret == 1) {
 		/* Device is already online or offline. This is not an error */

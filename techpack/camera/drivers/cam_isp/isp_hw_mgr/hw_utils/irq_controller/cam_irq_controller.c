@@ -620,9 +620,10 @@ static void cam_irq_controller_th_processing(
 			rc = irq_bh_api->get_bh_payload_func(
 				evt_handler->bottom_half, &bh_cmd);
 			if (rc || !bh_cmd) {
-				CAM_ERR_RATE_LIMIT(CAM_ISP,
+				CAM_ERR(CAM_ISP,
 					"No payload, IRQ handling frozen for %s",
 					controller->name);
+				//BUG();
 				continue;
 			}
 		}

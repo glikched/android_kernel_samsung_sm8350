@@ -186,6 +186,8 @@ static int msm_ext_disp_process_audio(struct msm_ext_disp *ext_disp,
 		goto end;
 	}
 
+	pr_debug("++, new_state:%d\n", new_state);
+
 	audio_sdev = ext_disp->audio_sdev[codec->stream_id];
 
 	state = extcon_get_state(audio_sdev, codec->type);
@@ -255,7 +257,7 @@ static int msm_ext_disp_update_audio_ops(struct msm_ext_disp *ext_disp,
 
 	ret = msm_ext_disp_get_intf_data(ext_disp, codec, &data);
 	if (ret || !data) {
-		pr_err("Display not found (%s) ctld (%d) stream (%d)\n",
+		pr_debug("Display not found (%s) ctld (%d) stream (%d)\n",
 			msm_ext_disp_name(codec->type),
 			codec->ctrl_id, codec->stream_id);
 		goto end;
@@ -286,6 +288,8 @@ static int msm_ext_disp_audio_config(struct platform_device *pdev,
 		ret = PTR_ERR(ext_disp);
 		goto end;
 	}
+
+	pr_debug("++, state:%d\n", state);
 
 	if (state == EXT_DISPLAY_CABLE_CONNECT) {
 		ret = msm_ext_disp_select_audio_codec(pdev, codec);
@@ -504,6 +508,8 @@ int msm_ext_disp_register_intf(struct platform_device *pdev,
 		pr_err("Invalid drvdata\n");
 		return -EINVAL;
 	}
+
+	pr_debug("++\n");
 
 	ext_disp = container_of(ext_disp_data, struct msm_ext_disp,
 				ext_disp_data);

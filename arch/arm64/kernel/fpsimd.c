@@ -1000,7 +1000,6 @@ void fpsimd_thread_switch(struct task_struct *next)
 	wrong_task = __this_cpu_read(fpsimd_last_state.st) !=
 					&next->thread.uw.fpsimd_state;
 	wrong_cpu = next->thread.fpsimd_cpu != smp_processor_id();
-
 	update_tsk_thread_flag(next, TIF_FOREIGN_FPSTATE,
 			       wrong_task || wrong_cpu);
 

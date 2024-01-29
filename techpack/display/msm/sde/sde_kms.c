@@ -63,6 +63,13 @@
 #define CREATE_TRACE_POINTS
 #include "sde_trace.h"
 
+#if defined(CONFIG_DISPLAY_SAMSUNG)
+#if defined(CONFIG_SEC_DEBUG)
+#include <linux/sec_debug.h>
+#endif
+#include "ss_dsi_panel_debug.h" // case 04436106
+#endif
+
 /* defines for secure channel call */
 #define MEM_PROTECT_SD_CTRL_SWITCH 0x18
 #define MDP_DEVICE_ID            0x1A
@@ -107,6 +114,79 @@ static const char * const iommu_ports[] = {
 static bool sdecustom = true;
 module_param(sdecustom, bool, 0400);
 MODULE_PARM_DESC(sdecustom, "Enable customizations for sde clients");
+
+#define SDE_REG_EVT32(...) sde_evtlog_log(sde_dbg_base_evtlog, func_name, \
+		line_num, SDE_EVTLOG_ALWAYS, ##__VA_ARGS__, \
+		SDE_EVTLOG_DATA_LIMITER)
+
+#define MAX_REG_COUNT 1
+
+struct reg_log_info {
+	u32 reg_off;
+	void __iomem *reg_mem;
+};
+static struct reg_log_info reg_info[MAX_REG_COUNT];
+
+struct reg_log_value {
+	u32 reg_off;
+	u32 reg_val;
+};
+
+static bool g_init_done = false;
+static bool g_cont_splash = true;
+
+#if defined(CONFIG_DISPLAY_SAMSUNG) && defined(CONFIG_UML)
+static void _reg_log_init(void)
+#else
+static void _reg_log_init()
+#endif
+{
+	sde_dbg_init(NULL);
+	reg_info[0].reg_off = 0xAE6BAB0; // INTF_LINE_COUNT
+	reg_info[0].reg_mem = ioremap(reg_info[0].reg_off, 4);
+}
+
+void reg_log_dump(const char *func_name, int line_num)
+{
+	struct reg_log_value value[5] = {{0}};
+	int i;
+
+	if (!g_cont_splash)
+		return;
+
+	if (!g_init_done) {
+		_reg_log_init();
+		g_init_done = true;
+	}
+
+#if defined(CONFIG_DISPLAY_SAMSUNG)
+	{
+		/* PBA booting skip */
+		extern int ss_panel_attached(int ndx);
+
+		if (!(ss_panel_attached(0) || ss_panel_attached(1)))
+			return;
+	}
+#endif
+
+	for (i = 0 ; i < MAX_REG_COUNT; i++) {
+		if (reg_info[i].reg_off)
+			value[i].reg_off = reg_info[i].reg_off;
+
+		if (!IS_ERR_OR_NULL(reg_info[i].reg_mem))
+			value[i].reg_val = readl_relaxed(reg_info[i].reg_mem);
+	}
+
+	SDE_REG_EVT32(func_name, line_num, i, 0xdddd,
+				value[0].reg_off, value[0].reg_val,
+				value[1].reg_off, value[1].reg_val,
+				value[2].reg_off, value[2].reg_val,
+				value[3].reg_off, value[3].reg_val,
+				value[4].reg_off, value[4].reg_val);
+
+	pr_debug("auto-refresh: %s:%d, off:0x%x, val:0x%x\n", func_name, line_num,
+			value[0].reg_off, value[0].reg_val);
+}
 
 static int sde_kms_hw_init(struct msm_kms *kms);
 static int _sde_kms_mmu_destroy(struct sde_kms *sde_kms);
@@ -219,6 +299,10 @@ static int sde_kms_enable_vblank(struct msm_kms *kms, struct drm_crtc *crtc)
 	SDE_ATRACE_BEGIN("sde_kms_enable_vblank");
 	ret = sde_crtc_vblank(crtc, true);
 	SDE_ATRACE_END("sde_kms_enable_vblank");
+
+#if defined(CONFIG_DISPLAY_SAMSUNG) // case 04436106
+	SS_XLOG_VSYNC(ret);
+#endif
 
 	return ret;
 }
@@ -779,6 +863,14 @@ static int _sde_kms_release_splash_buffer(unsigned int mem_addr,
 
 	/* leave ramdump memory only if base address matches */
 	if (ramdump_base == mem_addr &&
+#if defined(CONFIG_DISPLAY_SAMSUNG) && defined(CONFIG_SEC_DEBUG)
+			/* case 1) upload mode: release splash memory except disp_rdump_memory
+			 *		   which is used for framebuffer in upload mode bootloader
+			 * case 2) None-upload mode: release whole splash memory
+			 *		   which is used for framebuffer in normal booitng mode bootloader
+			 */
+			sec_debug_is_enabled() &&
+#endif
 			ramdump_buffer_size <= splash_buffer_size) {
 		mem_addr +=  ramdump_buffer_size;
 		splash_buffer_size -= ramdump_buffer_size;
@@ -794,6 +886,11 @@ static int _sde_kms_release_splash_buffer(unsigned int mem_addr,
 	}
 	for (pfn_idx = pfn_start; pfn_idx < pfn_end; pfn_idx++)
 		free_reserved_page(pfn_to_page(pfn_idx));
+
+#if defined(CONFIG_DISPLAY_SAMSUNG) && defined(CONFIG_SEC_DEBUG)
+	SDE_INFO("release splash buffer: addr: %lx, size: %x, sec_debug: %d\n",
+			mem_addr, splash_buffer_size, sec_debug_is_enabled());
+#endif
 
 	return ret;
 
@@ -1710,9 +1807,15 @@ static void _sde_kms_release_displays(struct sde_kms *sde_kms)
 	sde_kms->wb_displays = NULL;
 	sde_kms->wb_display_count = 0;
 
+#if defined(CONFIG_DISPLAY_SAMSUNG)
+	sde_kms->dsi_display_count = 0;
+	kfree(sde_kms->dsi_displays);
+	sde_kms->dsi_displays = NULL;
+#else
 	kfree(sde_kms->dsi_displays);
 	sde_kms->dsi_displays = NULL;
 	sde_kms->dsi_display_count = 0;
+#endif
 }
 
 /**
@@ -2177,6 +2280,11 @@ void sde_kms_timeline_status(struct drm_device *dev)
 	mutex_unlock(&dev->mode_config.mutex);
 }
 
+#if defined(CONFIG_DISPLAY_SAMSUNG)
+int sde_core_perf_sysfs_init(struct sde_kms *sde_kms);
+int sde_core_perf_sysfs_deinit(struct sde_kms *sde_kms);
+#endif
+
 static int sde_kms_postinit(struct msm_kms *kms)
 {
 	struct sde_kms *sde_kms = to_sde_kms(kms);
@@ -2220,6 +2328,12 @@ static int sde_kms_postinit(struct msm_kms *kms)
 	rc = _sde_debugfs_init(sde_kms);
 	if (rc)
 		SDE_ERROR("sde_debugfs init failed: %d\n", rc);
+
+#if defined(CONFIG_DISPLAY_SAMSUNG)
+	rc = sde_core_perf_sysfs_init(sde_kms);
+	if (rc)
+		SDE_ERROR("sde_core_sysfs init failed: %d\n", rc);
+#endif
 
 	drm_for_each_crtc(crtc, dev)
 		sde_crtc_post_init(dev, crtc);
@@ -2277,6 +2391,10 @@ static void _sde_kms_hw_destroy(struct sde_kms *sde_kms,
 	_sde_kms_release_displays(sde_kms);
 
 	_sde_kms_unmap_all_splash_regions(sde_kms);
+
+#if defined(CONFIG_DISPLAY_SAMSUNG)
+	sde_core_perf_sysfs_deinit(sde_kms);
+#endif
 
 	if (sde_kms->catalog) {
 		for (i = 0; i < sde_kms->catalog->vbif_count; i++) {
@@ -2785,7 +2903,6 @@ static int sde_kms_check_vm_request(struct msm_kms *kms,
 	if (!vm_ops->vm_request_valid || !vm_ops->vm_owns_hw ||
 				!vm_ops->vm_acquire)
 		return -EINVAL;
-
 
 	for_each_oldnew_crtc_in_state(state, crtc, old_cstate, new_cstate, i) {
 		struct sde_crtc_state *old_state = NULL, *new_state = NULL;

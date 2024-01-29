@@ -56,6 +56,8 @@
 
 #include "workqueue_internal.h"
 
+#include <linux/sec_debug.h>
+
 #include <trace/hooks/wqlockup.h>
 /* events/workqueue.h uses default TRACE_INCLUDE_PATH */
 #undef TRACE_INCLUDE_PATH
@@ -2292,6 +2294,9 @@ __acquires(&pool->lock)
 	 */
 	lockdep_invariant_state(true);
 	trace_workqueue_execute_start(work);
+#if IS_ENABLED(CONFIG_SEC_DEBUG_SCHED_LOG)
+	sec_debug_sched_msg(NULL, worker->current_func);
+#endif
 	worker->current_func(work);
 	/*
 	 * While we must be careful to not use "work" after this, the trace
@@ -5820,8 +5825,10 @@ static void wq_watchdog_timer_fn(struct timer_list *unused)
 
 	rcu_read_unlock();
 
-	if (lockup_detected)
+	if (lockup_detected) {
 		show_workqueue_state();
+		panic("detect workqueue watchdog!!\n");
+	}
 
 	wq_watchdog_reset_touched();
 	mod_timer(&wq_watchdog_timer, jiffies + thresh);

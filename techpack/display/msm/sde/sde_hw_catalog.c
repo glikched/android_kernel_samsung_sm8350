@@ -17,6 +17,10 @@
 #include "sde_hw_uidle.h"
 #include "sde_connector.h"
 
+#if defined(CONFIG_DISPLAY_SAMSUNG)
+#include "ss_dsi_panel_common.h"
+#endif
+
 /*************************************************************
  * MACRO DEFINITION
  *************************************************************/
@@ -2575,6 +2579,8 @@ static int _sde_ltm_parse_dt(struct device_node *np,
 			rc = _add_to_irq_offset_list(sde_cfg,
 					SDE_INTR_HWBLK_LTM, dspp->id,
 					dspp->base + sblk->ltm.base);
+			SDE_INFO("ltm base(0x%8x), version(0x%8x)\n",
+				sblk->ltm.base, sblk->ltm.version);
 			if (rc)
 				goto end;
 		}
@@ -4825,7 +4831,9 @@ static int _sde_hardware_pre_caps(struct sde_mdss_cfg *sde_cfg, uint32_t hw_rev)
 		set_bit(SDE_MDP_DHDR_MEMPOOL_4K, &sde_cfg->mdp[0].features);
 		sde_cfg->has_vig_p010 = true;
 		sde_cfg->true_inline_rot_rev = SDE_INLINE_ROT_VERSION_2_0_0;
+#if !defined(CONFIG_DISPLAY_SAMSUNG)
 		sde_cfg->uidle_cfg.uidle_rev = SDE_UIDLE_VERSION_1_0_1;
+#endif
 		sde_cfg->vbif_disable_inner_outer_shareable = true;
 		sde_cfg->dither_luma_mode_support = true;
 		sde_cfg->mdss_hw_block_size = 0x158;
@@ -5082,6 +5090,27 @@ struct sde_mdss_cfg *sde_hw_catalog_init(struct drm_device *dev)
 	rc = sde_top_parse_dt(np, sde_cfg);
 	if (rc)
 		goto end;
+
+#if defined(CONFIG_DISPLAY_SAMSUNG)
+	{
+		/* sde_hw_catalog_init() be called once for dual dsi,
+		 * and two vdds share same sde_kms pointer.
+		 * get sde_kms from primary vdd, then call ss_callback
+		 * for primary and secondary vdd, respectively.
+		 */
+		struct samsung_display_driver_data *vdd = ss_get_vdd(PRIMARY_DISPLAY_NDX);
+		int i;
+
+		if (IS_ERR_OR_NULL(vdd))
+			goto done;
+
+		for (i = PRIMARY_DISPLAY_NDX; i <= SECONDARY_DISPLAY_NDX; i++) {
+			vdd = ss_get_vdd(i);
+			ss_pba_config(vdd, (void *)sde_cfg);
+		}
+	}
+done:
+#endif
 
 	rc = sde_perf_parse_dt(np, sde_cfg);
 	if (rc)

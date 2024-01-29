@@ -106,15 +106,7 @@ static int mt76_led_init(struct mt76_dev *dev)
 		of_node_put(np);
 	}
 
-	return led_classdev_register(dev->dev, &dev->led_cdev);
-}
-
-static void mt76_led_cleanup(struct mt76_dev *dev)
-{
-	if (!dev->led_cdev.brightness_set && !dev->led_cdev.blink_set)
-		return;
-
-	led_classdev_unregister(&dev->led_cdev);
+	return devm_led_classdev_register(dev->dev, &dev->led_cdev);
 }
 
 static void mt76_init_stream_cap(struct mt76_dev *dev,
@@ -369,8 +361,6 @@ void mt76_unregister_device(struct mt76_dev *dev)
 {
 	struct ieee80211_hw *hw = dev->hw;
 
-	if (IS_ENABLED(CONFIG_MT76_LEDS))
-		mt76_led_cleanup(dev);
 	mt76_tx_status_check(dev, NULL, true);
 	ieee80211_unregister_hw(hw);
 }

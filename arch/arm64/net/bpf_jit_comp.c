@@ -19,6 +19,10 @@
 
 #include "bpf_jit.h"
 
+#ifdef CONFIG_FASTUH_RKP
+#include <linux/rkp.h>
+#endif
+
 #define TMP_REG_1 (MAX_BPF_JIT_REG + 0)
 #define TMP_REG_2 (MAX_BPF_JIT_REG + 1)
 #define TCALL_CNT (MAX_BPF_JIT_REG + 2)
@@ -985,7 +989,9 @@ skip_init_ctx:
 	prog->bpf_func = (void *)ctx.image;
 	prog->jited = 1;
 	prog->jited_len = image_size;
-
+#ifdef CONFIG_FASTUH_RKP
+	fastuh_call(FASTUH_APP_RKP, 0x22, (u64)header, (u64)(header->pages * 0x1000), 0, 0);
+#endif
 	if (!prog->is_func || extra_pass) {
 		int i;
 

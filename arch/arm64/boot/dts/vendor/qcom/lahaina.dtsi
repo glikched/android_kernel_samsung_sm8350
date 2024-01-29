@@ -34,7 +34,7 @@
 	#size-cells = <2>;
 
 	chosen {
-		bootargs = "log_buf_len=256K earlycon=msm_geni_serial,0x98c000 rcupdate.rcu_expedited=1 rcu_nocbs=0-7 kpti=off";
+		bootargs = "log_buf_len=256K rcupdate.rcu_expedited=1 rcu_nocbs=0-7 kpti=off";
 	};
 
 	memory { device_type = "memory"; reg = <0 0 0 0>; };
@@ -49,7 +49,7 @@
 		mboxes = <&qmp_aop 0>;
 	};
 
-	aliases {
+	aliases: aliases {
 		ufshc1 = &ufshc_mem; /* Embedded UFS Slot */
 		sdhc1 = &sdhc_2; /* SDC2 SD card slot */
 		serial0 = &qupv3_se3_2uart;
@@ -478,7 +478,7 @@
 		alloc-ranges = <0x0 0x00000000 0x0 0xffffffff>;
 		reusable;
 		alignment = <0x0 0x400000>;
-		size = <0x0 0xA400000>;
+		size = <0x0 0xD400000>;
 	};
 
 	cnss_wlan_mem: cnss_wlan_region {
@@ -486,7 +486,7 @@
 		alloc-ranges = <0x0 0x00000000 0x0 0xffffffff>;
 		reusable;
 		alignment = <0x0 0x400000>;
-		size = <0x0 0x1400000>;
+		size = <0x0 0x2000000>;
 	};
 
 	/* global autoconfigured region for contiguous allocations */
@@ -544,6 +544,15 @@
 	dfps_data_memory: dfps_data_region {
 		reg = <0x0 0xe3300000 0x0 0x0100000>;
 		label = "dfps_data_region";
+	};
+
+	non_secure_display_memory: non_secure_display_region {
+		compatible = "shared-dma-pool";
+		alloc-ranges = <0x0 0x00000000 0x0 0xffffffff>;
+		reusable;
+		alignment = <0x0 0x400000>;
+		size = <0x0 0x6400000>;
+		status = "disabled";
 	};
 
 	memshare_mem: memshare_region {
@@ -2111,7 +2120,7 @@
 		interrupts = <GIC_PPI 7 IRQ_TYPE_LEVEL_HIGH>;
 	};
 
-	qcom,msm-imem@146bf000 {
+	msm_imem: qcom,msm-imem@146bf000 {
 		compatible = "qcom,msm-imem";
 		reg = <0x146bf000 0x1000>;
 		ranges = <0x0 0x146bf000 0x1000>;
@@ -3316,6 +3325,12 @@
 		mbox-names = "aop";
 	};
 
+	aop-sysfs-msg-client {
+		compatible = "qcom,sysfs-qmp-client";
+		mboxes = <&qmp_aop 0>;
+		mbox-names = "aop";
+	};
+
 	qcom,smp2p_sleepstate {
 		compatible = "qcom,smp2p-sleepstate";
 		qcom,smem-states = <&sleepstate_smp2p_out 0>;
@@ -3414,14 +3429,6 @@
 			qcom,can-sleep;
 		};
 
-		qcom,pm8350b-debug@3 {
-			compatible = "qcom,spmi-pmic";
-			reg = <3 SPMI_USID>;
-			#address-cells = <2>;
-			#size-cells = <0>;
-			qcom,can-sleep;
-		};
-
 		qcom,pmr735a-debug@4 {
 			compatible = "qcom,spmi-pmic";
 			reg = <4 SPMI_USID>;
@@ -3457,6 +3464,7 @@
 		qcom,fastrpc-adsp-sensors-pdr;
 		qcom,rpc-latency-us = <235>;
 		qcom,fastrpc-gids = <2908>;
+		qcom,secure-domains = <0x0F>;
 		qcom,qos-cores = <0 1 2 3>;
 
 		qcom,msm_fastrpc_compute_cb1 {
@@ -4278,16 +4286,6 @@
 				qcom,glink-channels = "glink_ssr";
 				qcom,notify-edges = <&glink_slpi>,
 						    <&glink_modem>;
-			};
-
-			qcom,pmic_glink_rpmsg {
-				qcom,glink-channels = "PMIC_RTR_ADSP_APPS";
-			};
-
-			qcom,pmic_glink_log_rpmsg {
-				qcom,glink-channels = "PMIC_LOGS_ADSP_APPS";
-				qcom,intents = <0x800 5
-						0xc00 3>;
 			};
 		};
 
@@ -5559,86 +5557,6 @@
 				mhi,chan = "IPCR";
 				qcom,net-id = <0>;
 				qcom,low-latency;
-			};
-		};
-	};
-
-	qcom,pmic_glink {
-		compatible = "qcom,pmic-glink";
-		qcom,pmic-glink-channel = "PMIC_RTR_ADSP_APPS";
-		qcom,subsys-name = "adsp";
-		qcom,protection-domain = "tms/servreg", "msm/adsp/charger_pd";
-
-		battery_charger: qcom,battery_charger {
-			compatible = "qcom,battery-charger";
-		};
-
-		qcom,ucsi {
-			compatible = "qcom,ucsi-glink";
-			port {
-				usb_port0_connector: endpoint {
-					remote-endpoint = <&usb_port0>;
-				};
-			};
-		};
-
-		altmode: qcom,altmode {
-			compatible = "qcom,altmode-glink";
-			#altmode-cells = <1>;
-		};
-	};
-
-	qcom,pmic_glink_log {
-		compatible = "qcom,pmic-glink";
-		qcom,pmic-glink-channel = "PMIC_LOGS_ADSP_APPS";
-
-		qcom,battery_debug {
-			compatible = "qcom,battery-debug";
-		};
-
-		spmi_glink_debug: qcom,spmi_glink_debug {
-			compatible = "qcom,spmi-glink-debug";
-			#address-cells = <1>;
-			#size-cells = <0>;
-			status = "disabled";
-
-			/* Primary SPMI bus */
-			spmi@0 {
-				reg = <0>;
-				#address-cells = <2>;
-				#size-cells = <0>;
-
-				qcom,pm8350b-debug@3 {
-					compatible = "qcom,spmi-pmic";
-					reg = <0x3 SPMI_USID>;
-					qcom,can-sleep;
-				};
-			};
-
-			/* Secondary (QUP) SPMI bus */
-			spmi@1 {
-				reg = <1>;
-				#address-cells = <2>;
-				#size-cells = <0>;
-
-				qcom,smb1396-debug@b {
-					compatible = "qcom,spmi-pmic";
-					reg = <0xb SPMI_USID>;
-					qcom,can-sleep;
-				};
-
-				qcom,smb1396-debug@c {
-					compatible = "qcom,spmi-pmic";
-					reg = <0xc SPMI_USID>;
-					qcom,can-sleep;
-				};
-
-				smb1398_debug: qcom,smb1398-debug@d {
-					compatible = "qcom,spmi-pmic";
-					reg = <0xd SPMI_USID>;
-					qcom,can-sleep;
-					status = "disabled";
-				};
 			};
 		};
 	};
