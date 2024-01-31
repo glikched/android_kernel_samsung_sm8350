@@ -152,3 +152,6 @@ arch/*/configs/vendor/*_defconfig
 
 # vendor device tree directories
 arch/arm/boot/dts/vendor
+
+# Python cache
+scripts/crypto/__pycache__/
