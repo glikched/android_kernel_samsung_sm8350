@@ -124,12 +124,12 @@ static ssize_t store_hdm_policy(struct device *dev,
 	switch (c) {
 #if defined(CONFIG_ARCH_QCOM)
 	case HDM_HYP_CALL:
-		hdm_info("%s HDM_HYP_CALL\n", __func__);
-		fastuh_call(FASTUH_APP_HDM, 9, 0, p, 0, 0);
+//		hdm_info("%s HDM_HYP_CALL\n", __func__);
+//		fastuh_call(FASTUH_APP_HDM, 9, 0, p, 0, 0);
 		break;
 	case HDM_HYP_CALLP:
-		hdm_info("%s HDM_HYP_CALLP\n", __func__);
-		fastuh_call(FASTUH_APP_HDM, 2, 0, p, 0, 0);
+//		hdm_info("%s HDM_HYP_CALLP\n", __func__);
+//		fastuh_call(FASTUH_APP_HDM, 2, 0, p, 0, 0);
 		break;
 #endif
 	default:
