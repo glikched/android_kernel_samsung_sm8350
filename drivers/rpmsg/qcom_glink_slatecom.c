@@ -1706,7 +1706,7 @@ static int glink_slatecom_rx_data(struct glink_slatecom *glink,
 					chunk_size);
 		glink_slatecom_free_intent(channel, intent);
 		mutex_unlock(&channel->intent_lock);
-		return msglen;
+		return -EBADMSG;
 	}
 
 	rc = slatecom_ahb_read(glink->slatecom_handle, (uint32_t)(size_t)addr,
