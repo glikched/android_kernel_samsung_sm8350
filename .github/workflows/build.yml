@@ -16,6 +16,7 @@ jobs:
       matrix:
         target: [SM-G990B, SM-G990B2]
 
+    steps:
       - name: Set up build environment
         run: |
           sudo apt update
