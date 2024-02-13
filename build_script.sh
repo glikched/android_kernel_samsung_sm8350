@@ -12,7 +12,7 @@ K_MOD_DIR="$(pwd)/out/modules"
 SRC_DIR=$(pwd)
 TC_DIR=~/toolchains/clang-r383902b1
 JOBS=64
-MAKE_PARAMS="-j$JOBS -C $SRC_DIR O=$SRC_DIR/out/$DEVICE_NAME ARCH=arm64 CC=clang CLANG_TRIPLE=aarch64-linux-gnu- LLVM=1 CROSS_COMPILE=$TC_DIR/bin/llvm-"
+MAKE_PARAMS="-j$JOBS -C $SRC_DIR O=$SRC_DIR/out ARCH=arm64 CC=clang CLANG_TRIPLE=aarch64-linux-gnu- LLVM=1 CROSS_COMPILE=$TC_DIR/bin/llvm-"
 export PATH="$TC_DIR/bin:$PATH"
 
 if [ "$DEVICE_MODEL" == "SM-G990B" ]; then
@@ -50,8 +50,8 @@ make $MAKE_PARAMS INSTALL_MOD_PATH=modules INSTALL_MOD_STRIP=1 modules_install
 if [ -d "AnyKernel3" ]; then
     cd AnyKernel3; git reset HEAD --hard; cd ..
     mkdir AnyKernel3/modules/; mkdir AnyKernel3/modules/vendor/; mkdir AnyKernel3/modules/vendor/lib; mkdir AnyKernel3/modules/vendor/lib/modules/
-    find "$(pwd)/out/$DEVICE_NAME/modules" -type f -iname "*.ko" -exec cp -r {} ./AnyKernel3/modules/vendor/lib/modules/ \;
-    cp ./out/$DEVICE_NAME/arch/arm64/boot/Image ./AnyKernel3/
+    find "$(pwd)/out/modules" -type f -iname "*.ko" -exec cp -r {} ./AnyKernel3/modules/vendor/lib/modules/ \;
+    cp ./out/arch/arm64/boot/Image ./AnyKernel3/
     cd AnyKernel3
     rm -rf AQUA*
     zip -r9 $ZIP_NAME . -x '*.git*' '*patch*' '*ramdisk*' 'LICENSE' 'README.md'
@@ -59,8 +59,8 @@ if [ -d "AnyKernel3" ]; then
 else 
     git clone https://github.com/glikched/AnyKernel3 -b r9q
     mkdir AnyKernel3/modules/; mkdir AnyKernel3/modules/vendor/; mkdir AnyKernel3/modules/vendor/lib; mkdir AnyKernel3/modules/vendor/lib/modules/
-    find "$(pwd)/out/$DEVICE_NAME/modules" -type f -iname "*.ko" -exec cp -r {} ./AnyKernel3/modules/vendor/lib/modules/ \;
-    cp ./out/$DEVICE_NAME/arch/arm64/boot/Image ./AnyKernel3/
+    find "$(pwd)/out/modules" -type f -iname "*.ko" -exec cp -r {} ./AnyKernel3/modules/vendor/lib/modules/ \;
+    cp ./out/arch/arm64/boot/Image ./AnyKernel3/
     cd AnyKernel3
     rm -rf AQUA*
     zip -r9 $ZIP_NAME . -x '*.git*' '*patch*' '*ramdisk*' 'LICENSE' 'README.md'
