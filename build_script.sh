@@ -11,7 +11,7 @@ K_MOD_DIR="$(pwd)/out/modules"
 # Enviorment Variables
 SRC_DIR=$(pwd)
 TC_DIR=~/toolchains/clang-r383902b1
-JOBS=64
+JOBS="$(nproc --all)"
 MAKE_PARAMS="-j$JOBS -C $SRC_DIR O=$SRC_DIR/out ARCH=arm64 CC=clang CLANG_TRIPLE=aarch64-linux-gnu- LLVM=1 CROSS_COMPILE=$TC_DIR/bin/llvm-"
 export PATH="$TC_DIR/bin:$PATH"
 
