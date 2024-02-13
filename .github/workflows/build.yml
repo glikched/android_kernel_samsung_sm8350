@@ -1,0 +1,46 @@
+name: Build
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - 'android-14'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [SM-G990B, SM-G990B2]
+
+      - name: Set up build environment
+        run: |
+          sudo apt update
+          DEBIAN_FRONTEND=noninteractive sudo apt install -yq \
+            attr ccache clang golang libbrotli-dev \
+            libgtest-dev libprotobuf-dev libunwind-dev libusb-1.0-0-dev libzstd-dev \
+            linux-modules-extra-$(uname -r) build-essential lld ninja-build protobuf-compiler zipalign
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch Clang-r3833902b1
+        run: |
+          git clone https://github.com/glikched/android_prebuilts_clang-r383902b1 ~/toolchains/clang-r383902b1
+
+      - name: Build Kernel
+        run: |
+          source ./build_script.sh ${{ matrix.target }}
+
+      - name: Publish to GitHub
+        uses: softprops/action-gh-release@v1
+        with:
+          files: AnyKernel3/AQUA*
+          name: AQUA-CI_${{ github.run_id }}
+          tag_name: ${{ github.run_id }}
+          body: |
+            BUILD_DATE: $(TZ='Romania/Bucharest' date)
+        env:
+          GITHUB_TOKEN: ${{ secrets.TEST }}
