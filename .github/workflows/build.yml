@@ -17,6 +17,9 @@ jobs:
         target: [SM-G990B, SM-G990B2]
 
     steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        
       - name: Set up build environment
         run: |
           sudo apt update
