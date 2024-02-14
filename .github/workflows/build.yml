@@ -34,16 +34,16 @@ jobs:
         run: |
           git clone https://github.com/glikched/android_prebuilts_clang-r383902b1 ~/toolchains/clang-r383902b1
 
-      - name: Build Kernel With KSU
+      - name: Build Kernel Clean
         run: |
-          source ./build_script.sh ${{ matrix.target }}
+          source ./build_script.sh KSU=false ${{ matrix.target }}
           cp ./AnyKernel3/AQUA* ./
 
       - name: Clean Kernel Source
         run: |
           make mrproper ARCH=arm64 LLVM=1
 
-      - name: Build Kernel Clean
+      - name: Build Kernel With KSU
         run: |
           source ./build_script.sh ${{ matrix.target }} KSU=true
           cp ./AnyKernel3/AQUA* ./
@@ -85,16 +85,16 @@ jobs:
         run: |
           git clone https://github.com/glikched/android_prebuilts_clang-r383902b1 ~/toolchains/clang-r383902b1
 
-      - name: Build Kernel With KSU
+      - name: Build Kernel Clean
         run: |
-          source ./build_script.sh ${{ matrix.target }}
+          source ./build_script.sh KSU=false ${{ matrix.target }}
           cp ./AnyKernel3/AQUA* ./
 
       - name: Clean Kernel Source
         run: |
           make mrproper ARCH=arm64 LLVM=1
 
-      - name: Build Kernel Clean
+      - name: Build Kernel With KSU
         run: |
           source ./build_script.sh ${{ matrix.target }} KSU=true
           cp ./AnyKernel3/AQUA* ./
