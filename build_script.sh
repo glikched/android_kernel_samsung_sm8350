@@ -1,7 +1,6 @@
 #!/bin/bash
 
 ## DEVICE STUFF
-KSU="true"
 DEVICE_HARDWARE="sm8350"
 DEVICE_MODEL="$1"
 ZIP_DIR="$(pwd)/AnyKernel3"
