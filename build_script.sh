@@ -36,7 +36,9 @@ if [ "$KSU" == "true" ]; then
     fi
 elif [ "$KSU" == "false" ]; then
     ZIP_NAME="AQUA_"$DEVICE_NAME"_"$DEVICE_MODEL"_"$(date +%d%m%y-%H%M)""
-    git reset HEAD --hard
+    if [ -d "KernelSU" ]; then
+        git reset HEAD --hard
+    fi
 else
     ZIP_NAME="AQUA_"$DEVICE_NAME"_"$DEVICE_MODEL"_"$(date +%d%m%y-%H%M)""
     echo "KSU is not set, building as is"
