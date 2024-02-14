@@ -50,7 +50,10 @@ make $MAKE_PARAMS INSTALL_MOD_PATH=modules INSTALL_MOD_STRIP=1 modules_install
 
 if [ -d "AnyKernel3" ]; then
     cd AnyKernel3; git reset HEAD --hard; cd ..
-    mkdir AnyKernel3/modules/; mkdir AnyKernel3/modules/vendor/; mkdir AnyKernel3/modules/vendor/lib; mkdir AnyKernel3/modules/vendor/lib/modules/
+    if [ -d "AnyKernel3/modules" ]; then
+    else
+        mkdir AnyKernel3/modules/; mkdir AnyKernel3/modules/vendor/; mkdir AnyKernel3/modules/vendor/lib; mkdir AnyKernel3/modules/vendor/lib/modules/
+    fi
     find "$(pwd)/out/modules" -type f -iname "*.ko" -exec cp -r {} ./AnyKernel3/modules/vendor/lib/modules/ \;
     cp ./out/arch/arm64/boot/Image ./AnyKernel3/
     cd AnyKernel3
@@ -59,7 +62,10 @@ if [ -d "AnyKernel3" ]; then
     cd ..
 else 
     git clone https://github.com/glikched/AnyKernel3 -b r9q
-    mkdir AnyKernel3/modules/; mkdir AnyKernel3/modules/vendor/; mkdir AnyKernel3/modules/vendor/lib; mkdir AnyKernel3/modules/vendor/lib/modules/
+    if [ -d "AnyKernel3/modules" ]; then
+    else
+        mkdir AnyKernel3/modules/; mkdir AnyKernel3/modules/vendor/; mkdir AnyKernel3/modules/vendor/lib; mkdir AnyKernel3/modules/vendor/lib/modules/
+    fi
     find "$(pwd)/out/modules" -type f -iname "*.ko" -exec cp -r {} ./AnyKernel3/modules/vendor/lib/modules/ \;
     cp ./out/arch/arm64/boot/Image ./AnyKernel3/
     cd AnyKernel3
