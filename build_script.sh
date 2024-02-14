@@ -50,9 +50,9 @@ elif [ "$KSU" == "false" ]; then
     fi
 fi
 
-make $MAKE_PARAMS $DEFCONFIG
-make $MAKE_PARAMS
-make $MAKE_PARAMS INSTALL_MOD_PATH=modules INSTALL_MOD_STRIP=1 modules_install
+# make $MAKE_PARAMS $DEFCONFIG
+# make $MAKE_PARAMS
+# make $MAKE_PARAMS INSTALL_MOD_PATH=modules INSTALL_MOD_STRIP=1 modules_install
 
 if [ -d "AnyKernel3" ]; then
     cd AnyKernel3; git reset HEAD --hard; cd ..
@@ -64,6 +64,7 @@ if [ -d "AnyKernel3" ]; then
     fi
     find "$(pwd)/out/modules" -type f -iname "*.ko" -exec cp -r {} ./AnyKernel3/modules/vendor/lib/modules/ \;
     cp ./out/arch/arm64/boot/Image ./AnyKernel3/
+    cp ./out/arch/arm64/boot/dtbo.img ./AnyKernel3/
     cd AnyKernel3
     rm -rf AQUA*
     zip -r9 $ZIP_NAME . -x '*.git*' '*patch*' '*ramdisk*' 'LICENSE' 'README.md'
@@ -78,6 +79,7 @@ else
     fi
     find "$(pwd)/out/modules" -type f -iname "*.ko" -exec cp -r {} ./AnyKernel3/modules/vendor/lib/modules/ \;
     cp ./out/arch/arm64/boot/Image ./AnyKernel3/
+    cp ./out/arch/arm64/boot/dtbo.img ./AnyKernel3/
     cd AnyKernel3
     rm -rf AQUA*
     zip -r9 $ZIP_NAME . -x '*.git*' '*patch*' '*ramdisk*' 'LICENSE' 'README.md'
