@@ -51,11 +51,12 @@ jobs:
       - name: Publish to GitHub
         uses: softprops/action-gh-release@v1
         with:
-          files: AnyKernel3/AQUA*
+          files: AQUA*
           name: AQUA-CI_${{ github.run_id }}
           tag_name: ${{ github.run_id }}
           body: |
-            BUILD_DATE: $(TZ='Romania/Bucharest' date)
+            Kernel: 5.4.259-aqua
+            Clang: r383902b1
         env:
           GITHUB_TOKEN: ${{ secrets.TEST }}
 
@@ -102,10 +103,11 @@ jobs:
       - name: Publish to GitHub
         uses: softprops/action-gh-release@v1
         with:
-          files: AnyKernel3/AQUA*
+          files: AQUA*
           name: AQUA-CI_${{ github.run_id }}
           tag_name: ${{ github.run_id }}
           body: |
-            BUILD_DATE: $(TZ='Romania/Bucharest' date)
+            Kernel: 5.4.259-aqua
+            Clang: r383902b1
         env:
           GITHUB_TOKEN: ${{ secrets.TEST }}
