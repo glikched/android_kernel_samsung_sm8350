@@ -51,6 +51,8 @@ make $MAKE_PARAMS INSTALL_MOD_PATH=modules INSTALL_MOD_STRIP=1 modules_install
 if [ -d "AnyKernel3" ]; then
     cd AnyKernel3; git reset HEAD --hard; cd ..
     if [ -d "AnyKernel3/modules" ]; then
+        rm -rf AnyKernel3/modules/
+        mkdir AnyKernel3/modules/; mkdir AnyKernel3/modules/vendor/; mkdir AnyKernel3/modules/vendor/lib; mkdir AnyKernel3/modules/vendor/lib/modules/
     else
         mkdir AnyKernel3/modules/; mkdir AnyKernel3/modules/vendor/; mkdir AnyKernel3/modules/vendor/lib; mkdir AnyKernel3/modules/vendor/lib/modules/
     fi
@@ -63,6 +65,8 @@ if [ -d "AnyKernel3" ]; then
 else 
     git clone https://github.com/glikched/AnyKernel3 -b r9q
     if [ -d "AnyKernel3/modules" ]; then
+        rm -rf AnyKernel3/modules/
+        mkdir AnyKernel3/modules/; mkdir AnyKernel3/modules/vendor/; mkdir AnyKernel3/modules/vendor/lib; mkdir AnyKernel3/modules/vendor/lib/modules/
     else
         mkdir AnyKernel3/modules/; mkdir AnyKernel3/modules/vendor/; mkdir AnyKernel3/modules/vendor/lib; mkdir AnyKernel3/modules/vendor/lib/modules/
     fi
