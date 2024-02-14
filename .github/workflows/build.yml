@@ -36,7 +36,7 @@ jobs:
 
       - name: Build Kernel Clean
         run: |
-          source ./build_script.sh KSU=false ${{ matrix.target }}
+          source ./build_script.sh ${{ matrix.target }} KSU=false
           cp ./AnyKernel3/AQUA* ./
 
       - name: Clean Kernel Source
@@ -87,7 +87,7 @@ jobs:
 
       - name: Build Kernel Clean
         run: |
-          source ./build_script.sh KSU=false ${{ matrix.target }}
+          source ./build_script.sh ${{ matrix.target }} KSU=false
           cp ./AnyKernel3/AQUA* ./
 
       - name: Clean Kernel Source
