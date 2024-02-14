@@ -37,6 +37,9 @@ jobs:
       - name: Build Kernel
         run: |
           source ./build_script.sh ${{ matrix.target }}
+          cp ./AnyKernel3/AQUA* ./; make mrproper ARCH=arm64 LLVM=1
+          source ./build_script.sh ${{ matrix.target }} KSU=true
+          cp ./AnyKernel3/AQUA* ./
 
       - name: Publish to GitHub
         uses: softprops/action-gh-release@v1
@@ -78,6 +81,9 @@ jobs:
       - name: Build Kernel
         run: |
           source ./build_script.sh ${{ matrix.target }}
+          cp ./AnyKernel3/AQUA* ./; make mrproper ARCH=arm64 LLVM=1
+          source ./build_script.sh ${{ matrix.target }} KSU=true
+          cp ./AnyKernel3/AQUA* ./
 
       - name: Publish to GitHub
         uses: softprops/action-gh-release@v1
