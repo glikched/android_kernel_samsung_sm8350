@@ -8,13 +8,13 @@ on:
       - 'android-14'
 
 jobs:
-  build-r9q:
+  build_aqua:
     runs-on: ubuntu-latest
 
     strategy:
       fail-fast: false
       matrix:
-        target: [SM-G990B]
+        target: [SM-G990B, SM-G990B2]
 
     steps:
       - name: Checkout repo
@@ -36,7 +36,7 @@ jobs:
 
       - name: Build Kernel Clean
         run: |
-          source ./build_script.sh ${{ matrix.target }} KSU=false
+          source ./build_script.sh ${{ matrix.target }}
           cp ./AnyKernel3/AQUA* ./
 
       - name: Clean Kernel Source
@@ -45,59 +45,7 @@ jobs:
 
       - name: Build Kernel With KSU
         run: |
-          source ./build_script.sh ${{ matrix.target }} KSU=true
-          cp ./AnyKernel3/AQUA* ./
-
-      - name: Publish to GitHub
-        uses: softprops/action-gh-release@v1
-        with:
-          files: AQUA*
-          name: AQUA-CI_${{ github.run_id }}
-          tag_name: ${{ github.run_id }}
-          body: |
-            Kernel: 5.4.259-aqua
-            Clang: r383902b1
-        env:
-          GITHUB_TOKEN: ${{ secrets.TEST }}
-
-  build-r9q2:
-    runs-on: ubuntu-latest
-
-    strategy:
-      fail-fast: false
-      matrix:
-        target: [SM-G990B2]
-
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-        
-      - name: Set up build environment
-        run: |
-          sudo apt update
-          DEBIAN_FRONTEND=noninteractive sudo apt install -yq \
-            attr ccache clang golang libbrotli-dev \
-            libgtest-dev libprotobuf-dev libunwind-dev libusb-1.0-0-dev libzstd-dev \
-            linux-modules-extra-$(uname -r) build-essential lld ninja-build protobuf-compiler zipalign gcc-aarch64-linux-gnu
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-      - name: Fetch Clang-r3833902b1
-        run: |
-          git clone https://github.com/glikched/android_prebuilts_clang-r383902b1 ~/toolchains/clang-r383902b1
-
-      - name: Build Kernel Clean
-        run: |
-          source ./build_script.sh ${{ matrix.target }} KSU=false
-          cp ./AnyKernel3/AQUA* ./
-
-      - name: Clean Kernel Source
-        run: |
-          make mrproper ARCH=arm64 LLVM=1
-
-      - name: Build Kernel With KSU
-        run: |
-          source ./build_script.sh ${{ matrix.target }} KSU=true
+          source ./build_script.sh ${{ matrix.target }} --ksu
           cp ./AnyKernel3/AQUA* ./
 
       - name: Publish to GitHub

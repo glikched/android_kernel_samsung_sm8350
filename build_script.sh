@@ -25,6 +25,13 @@ else
     exit
 fi
 
+# Check if KSU flag is provided
+if [[ "$*" == *"--ksu"* ]]; then
+    KSU="true"
+else
+    KSU="false"
+fi
+
 # Check the value of KSU
 if [ "$KSU" == "true" ]; then
     ZIP_NAME="AQUA_KSU_"$DEVICE_NAME"_"$DEVICE_MODEL"_"$(date +%d%m%y-%H%M)""
@@ -35,7 +42,7 @@ if [ "$KSU" == "true" ]; then
         echo "Fetching ...."
         curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -
     fi
-else
+elif [ "$KSU" == "false" ]; then
     echo "KSU disabled"
     ZIP_NAME="AQUA_"$DEVICE_NAME"_"$DEVICE_MODEL"_"$(date +%d%m%y-%H%M)""
     if [ -d "KernelSU" ]; then
