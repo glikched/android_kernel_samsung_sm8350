@@ -50,9 +50,9 @@ elif [ "$KSU" == "false" ]; then
     fi
 fi
 
-# make $MAKE_PARAMS $DEFCONFIG
-# make $MAKE_PARAMS
-# make $MAKE_PARAMS INSTALL_MOD_PATH=modules INSTALL_MOD_STRIP=1 modules_install
+make $MAKE_PARAMS $DEFCONFIG
+make $MAKE_PARAMS
+make $MAKE_PARAMS INSTALL_MOD_PATH=modules INSTALL_MOD_STRIP=1 modules_install
 
 if [ -d "AnyKernel3" ]; then
     cd AnyKernel3; git reset HEAD --hard; cd ..
