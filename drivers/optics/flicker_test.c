@@ -150,7 +150,7 @@ EXPORT_SYMBOL(als_eol_set_env);
  * Return result_data
  * MUST call als_eol_update* functions to notify the sensor output!!
  */
-struct result_data* als_eol_mode()
+struct result_data* als_eol_mode(void)
 {
 	int pulse_duty = 0;
 	int curr_state = EOL_STATE_INIT;
@@ -252,7 +252,7 @@ struct result_data* als_eol_mode()
 }
 EXPORT_SYMBOL(als_eol_mode);
 
-int als_eol_parse_dt()
+int als_eol_parse_dt(void)
 {
 	struct device_node *np;
 	enum of_gpio_flags flags;
