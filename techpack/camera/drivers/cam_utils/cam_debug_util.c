@@ -19,7 +19,7 @@ module_param(debug_type, uint, 0644);
 
 struct camera_debug_settings cam_debug;
 
-const struct camera_debug_settings *cam_debug_get_settings()
+const struct camera_debug_settings *cam_debug_get_settings(void)
 {
 	return &cam_debug;
 }
@@ -57,7 +57,8 @@ static int cam_debug_parse_cpas_settings(const char *setting, u64 value)
 }
 
 ssize_t cam_debug_sysfs_node_store(struct device *dev,
-		struct device_attribute *attr, const char *buf, size_t count)
+				   struct device_attribute *attr,
+				   const char *buf, size_t count)
 {
 	int rc = 0;
 	char *local_buf = NULL, *local_buf_temp = NULL;
@@ -67,14 +68,14 @@ ssize_t cam_debug_sysfs_node_store(struct device *dev,
 	u64 value;
 
 	CAM_INFO(CAM_UTIL, "Sysfs debug attr name:[%s] buf:[%s] bytes:[%d]",
-		attr->attr.name, buf, count);
+		 attr->attr.name, buf, count);
 	local_buf = kmemdup(buf, (count + sizeof(char)), GFP_KERNEL);
 	local_buf_temp = local_buf;
 	driver = strsep(&local_buf, "#");
 	if (!driver) {
 		CAM_ERR(CAM_UTIL,
-			"Invalid input driver name buf:[%s], count:%d",
-			buf, count);
+			"Invalid input driver name buf:[%s], count:%d", buf,
+			count);
 		goto error;
 	}
 
@@ -87,8 +88,8 @@ ssize_t cam_debug_sysfs_node_store(struct device *dev,
 
 	value_str = strsep(&local_buf, "=");
 	if (!value_str) {
-		CAM_ERR(CAM_UTIL, "Invalid input value buf:[%s], count:%d",
-			buf, count);
+		CAM_ERR(CAM_UTIL, "Invalid input value buf:[%s], count:%d", buf,
+			count);
 		goto error;
 	}
 
@@ -99,7 +100,8 @@ ssize_t cam_debug_sysfs_node_store(struct device *dev,
 		goto error;
 	}
 
-	CAM_INFO(CAM_UTIL,
+	CAM_INFO(
+		CAM_UTIL,
 		"Processing sysfs store for driver:[%s], setting:[%s], value:[%llu]",
 		driver, setting, value);
 
@@ -258,7 +260,7 @@ const char *cam_get_tag_name(unsigned int tag_id)
 }
 
 void cam_debug_log(unsigned int module_id, const char *func, const int line,
-	const char *fmt, ...)
+		   const char *fmt, ...)
 {
 	if (debug_mdl & module_id) {
 		char str_buffer[STR_BUFFER_MAX_LENGTH];
@@ -270,18 +272,18 @@ void cam_debug_log(unsigned int module_id, const char *func, const int line,
 
 		if ((debug_type == 0) || (debug_type == 2)) {
 			pr_info("CAM_DBG: %s: %s: %d: %s\n",
-				cam_get_module_name(module_id),
-				func, line, str_buffer);
+				cam_get_module_name(module_id), func, line,
+				str_buffer);
 		}
 
 		if ((debug_type == 1) || (debug_type == 2)) {
 			char trace_buffer[STR_BUFFER_MAX_LENGTH];
 
 			snprintf(trace_buffer, sizeof(trace_buffer),
-				"%s: %s: %s: %d: %s",
-				cam_get_tag_name(CAM_TYPE_DBG),
-				cam_get_module_name(module_id),
-				func, line, str_buffer);
+				 "%s: %s: %s: %d: %s",
+				 cam_get_tag_name(CAM_TYPE_DBG),
+				 cam_get_module_name(module_id), func, line,
+				 str_buffer);
 			trace_cam_log_debug(trace_buffer);
 		}
 
@@ -289,8 +291,8 @@ void cam_debug_log(unsigned int module_id, const char *func, const int line,
 	}
 }
 
-void cam_debug_trace(unsigned int tag, unsigned int module_id,
-	const char *func, const int line, const char *fmt, ...)
+void cam_debug_trace(unsigned int tag, unsigned int module_id, const char *func,
+		     const int line, const char *fmt, ...)
 {
 	char str_buffer[STR_BUFFER_MAX_LENGTH];
 	va_list args;
@@ -303,9 +305,9 @@ void cam_debug_trace(unsigned int tag, unsigned int module_id,
 		vsnprintf(str_buffer, STR_BUFFER_MAX_LENGTH, fmt, args);
 
 		snprintf(trace_buffer, sizeof(trace_buffer),
-			"%s: %s: %s: %d: %s",
-			cam_get_tag_name(tag), cam_get_module_name(module_id),
-			func, line, str_buffer);
+			 "%s: %s: %s: %d: %s", cam_get_tag_name(tag),
+			 cam_get_module_name(module_id), func, line,
+			 str_buffer);
 		trace_cam_log_debug(trace_buffer);
 
 		va_end(args);
