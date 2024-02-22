@@ -21,14 +21,14 @@ static DEFINE_SPINLOCK(hdl_tbl_lock);
 #if defined(CONFIG_SAMSUNG_SBI)
 bool is_crm_in_ssm_mode = false;
 
-bool cam_req_mgr_get_is_crm_in_ssm_mode()
+bool cam_req_mgr_get_is_crm_in_ssm_mode(void)
 {
-    return is_crm_in_ssm_mode;
+	return is_crm_in_ssm_mode;
 }
 
 void cam_req_mgr_set_is_crm_in_ssm_mode(bool val)
 {
-    is_crm_in_ssm_mode = val;
+	is_crm_in_ssm_mode = val;
 }
 #endif
 
@@ -109,8 +109,8 @@ int cam_req_mgr_util_free_hdls(void)
 	for (i = 0; i < CAM_REQ_MGR_MAX_HANDLES_V2; i++) {
 		if (hdl_tbl->hdl[i].state == HDL_ACTIVE) {
 			CAM_WARN(CAM_CRM, "Dev handle = %x session_handle = %x",
-				hdl_tbl->hdl[i].hdl_value,
-				hdl_tbl->hdl[i].session_hdl);
+				 hdl_tbl->hdl[i].hdl_value,
+				 hdl_tbl->hdl[i].session_hdl);
 			hdl_tbl->hdl[i].state = HDL_FREE;
 			clear_bit(i, hdl_tbl->bitmap);
 		}
@@ -142,13 +142,12 @@ void cam_dump_tbl_info(void)
 	int i;
 
 	for (i = 0; i < CAM_REQ_MGR_MAX_HANDLES_V2; i++)
-		CAM_INFO(CAM_CRM,
+		CAM_INFO(
+			CAM_CRM,
 			"i: %d session_hdl=0x%x hdl_value=0x%x type=%d state=%d dev_id=0x%llx",
 			i, hdl_tbl->hdl[i].session_hdl,
-			hdl_tbl->hdl[i].hdl_value,
-			hdl_tbl->hdl[i].type,
-			hdl_tbl->hdl[i].state,
-			hdl_tbl->hdl[i].dev_id);
+			hdl_tbl->hdl[i].hdl_value, hdl_tbl->hdl[i].type,
+			hdl_tbl->hdl[i].state, hdl_tbl->hdl[i].dev_id);
 }
 
 int32_t cam_create_session_hdl(void *priv)
@@ -201,8 +200,8 @@ int32_t cam_create_device_hdl(struct cam_create_dev_hdl *hdl_data)
 
 	idx = cam_get_free_handle_index();
 	if (idx < 0) {
-		CAM_ERR(CAM_CRM,
-			"Unable to create device handle(idx= %d)", idx);
+		CAM_ERR(CAM_CRM, "Unable to create device handle(idx= %d)",
+			idx);
 		cam_dump_tbl_info();
 		spin_unlock_bh(&hdl_tbl_lock);
 		return idx;
@@ -345,8 +344,8 @@ static int cam_destroy_hdl(int32_t dev_hdl, int dev_hdl_type)
 	}
 
 	hdl_tbl->hdl[idx].state = HDL_FREE;
-	hdl_tbl->hdl[idx].ops   = NULL;
-	hdl_tbl->hdl[idx].priv  = NULL;
+	hdl_tbl->hdl[idx].ops = NULL;
+	hdl_tbl->hdl[idx].priv = NULL;
 	clear_bit(idx, hdl_tbl->bitmap);
 	spin_unlock_bh(&hdl_tbl_lock);
 
