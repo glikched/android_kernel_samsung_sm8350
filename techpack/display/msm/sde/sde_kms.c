@@ -1379,81 +1379,6 @@ static void _sde_kms_release_splash_resource(struct sde_kms *sde_kms,
 	}
 }
 
-static void sde_kms_cancel_delayed_work(struct drm_crtc *crtc)
-{
-	struct drm_connector *connector;
-	struct drm_connector_list_iter iter;
-	struct drm_encoder *encoder;
-
-	/* Cancel CRTC work */
-	sde_crtc_cancel_delayed_work(crtc);
-
-	/* Cancel ESD work */
-	drm_connector_list_iter_begin(crtc->dev, &iter);
-	drm_for_each_connector_iter(connector, &iter)
-		if (drm_connector_mask(connector) & crtc->state->connector_mask)
-			sde_connector_schedule_status_work(connector, false);
-	drm_connector_list_iter_end(&iter);
-
-	/* Cancel Idle-PC work */
-	drm_for_each_encoder_mask(encoder, crtc->dev, crtc->state->encoder_mask) {
-		if (sde_encoder_in_clone_mode(encoder))
-			continue;
-
-		sde_encoder_cancel_delayed_work(encoder);
-	}
-}
-
-int sde_kms_vm_pre_release(struct sde_kms *sde_kms,
-	struct drm_atomic_state *state, bool is_primary)
-{
-	struct drm_crtc *crtc;
-	struct drm_encoder *encoder;
-	struct msm_drm_private *priv;
-	int rc = 0;
-
-	crtc = sde_kms_vm_get_vm_crtc(state);
-	if (!crtc)
-		return 0;
-
-	priv = crtc->dev->dev_private;
-
-	/* if vm_req is enabled, once CRTC on the commit is guaranteed */
-	sde_kms_wait_for_frame_transfer_complete(&sde_kms->base, crtc);
-
-	sde_dbg_set_hw_ownership_status(false);
-
-	sde_kms_cancel_delayed_work(crtc);
-
-	/* disable SDE encoder irq's */
-	drm_for_each_encoder_mask(encoder, crtc->dev,
-					crtc->state->encoder_mask) {
-		if (sde_encoder_in_clone_mode(encoder))
-			continue;
-
-		sde_encoder_irq_control(encoder, false);
-	}
-
-	if (is_primary) {
-		/* disable vblank events */
-		drm_crtc_vblank_off(crtc);
-
-		/* reset sw state */
-		sde_crtc_reset_sw_state(crtc);
-	}
-
-	/* Flush pp_event thread queue for any pending events */
-	kthread_flush_worker(&priv->pp_event_worker);
-
-	/*
-	 * Flush event thread queue for any pending events as vblank work
-	 * might get scheduled from drm_crtc_vblank_off
-	 */
-	kthread_flush_worker(&priv->event_thread[crtc->index].worker);
-
-	return rc;
-}
-
 int sde_kms_vm_trusted_post_commit(struct sde_kms *sde_kms,
 	struct drm_atomic_state *state)
 {
@@ -1602,22 +1527,17 @@ int sde_kms_vm_primary_post_commit(struct sde_kms *sde_kms,
 	/* properly handoff color processing features */
 	sde_cp_crtc_vm_primary_handoff(crtc);
 
-	sde_vm_lock(sde_kms);
-
 	/* handle non-SDE clients pre-release */
 	if (vm_ops->vm_client_pre_release) {
 		rc = vm_ops->vm_client_pre_release(sde_kms);
 		if (rc) {
 			SDE_ERROR("sde vm client pre_release failed, rc=%d\n",
 					rc);
-			sde_vm_unlock(sde_kms);
 			goto exit;
 		}
 	}
 
-	/* disable IRQ line */
-	sde_irq_update(&sde_kms->base, false);
-
+	sde_vm_lock(sde_kms);
 	/* release HW */
 	if (vm_ops->vm_release) {
 		rc = vm_ops->vm_release(sde_kms);
