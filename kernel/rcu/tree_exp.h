@@ -455,6 +455,8 @@ static void sync_rcu_exp_select_cpus(void)
 			flush_work(&rnp->rew.rew_work);
 }
 
+static inline void synchronize_rcu_expedited_destroy_work(struct rcu_exp_work *rew) {}
+
 static void synchronize_sched_expedited_wait(void)
 {
 	int cpu;
@@ -844,8 +846,6 @@ void synchronize_rcu_expedited(void)
 	/* Let the next expedited grace period start. */
 	mutex_unlock(&rcu_state.exp_mutex);
 
-	if (likely(!boottime))
-		destroy_work_on_stack(&rew.rew_work);
 	if (likely(!no_wq))
 		synchronize_rcu_expedited_destroy_work(&rew);
 }
