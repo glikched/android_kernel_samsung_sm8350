@@ -104,7 +104,7 @@ int is_eeprom_info_update(uint32_t type, char *header_ver)
  *
  *	Define the mask if you need to send only information from certain cameras.
  */
-int is_eeprom_wacom_update_notifier()
+int is_eeprom_wacom_update_notifier(void)
 {
 	pr_info("[NOTI_DBG] send value 0x%llx to wacom", wacom_notify_value);
 	return raw_notifier_call_chain(&dev_cam_eeprom_noti_chain,
