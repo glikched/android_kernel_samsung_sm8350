@@ -15,6 +15,8 @@
 #include <linux/sched/sysctl.h>
 #include <trace/hooks/sched.h>
 
+extern DEFINE_PER_CPU(unsigned long, fps_boosted_util);
+
 struct sugov_tunables {
 	struct gov_attr_set	attr_set;
 	unsigned int		up_rate_limit_us;
