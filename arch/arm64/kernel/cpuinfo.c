@@ -25,6 +25,20 @@
 #include <linux/smp.h>
 #include <linux/delay.h>
 
+char chipname_str[20] = "Samsung";
+
+static int __init get_chipname(char *str)
+{
+	if (!str)
+		return 1;
+	
+	strncpy(chipname_str, str, sizeof(chipname_str) - 1);
+	chipname_str[sizeof(chipname_str) - 1] = '\0';
+
+	return 0;
+}
+__setup("cpuinfo.chipname=", get_chipname);
+
 /*
  * In case the boot CPU is hotpluggable, we record its initial state and
  * current state separately. Certain system registers may contain different
@@ -178,6 +192,8 @@ static int c_show(struct seq_file *m, void *v)
 		seq_printf(m, "CPU part\t: 0x%03x\n", MIDR_PARTNUM(midr));
 		seq_printf(m, "CPU revision\t: %d\n\n", MIDR_REVISION(midr));
 	}
+
+	seq_printf(m, "Hardware\t: %s\n", chipname_str);
 
 	return 0;
 }

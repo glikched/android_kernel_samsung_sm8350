@@ -357,4 +357,3 @@ void sde_dsc1_2_setup_ops(struct sde_hw_dsc_ops *ops,
 	ops->dsc_config_thresh = sde_hw_dsc_config_thresh;
 	ops->bind_pingpong_blk = sde_hw_dsc_bind_pingpong_blk;
 }
-

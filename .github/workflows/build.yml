@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [SM-G990B, SM-G990B2]
+        target: [SM-G990B, SM-G990B2, SM-G9910, SM-G9960, SM-G9980]
 
     steps:
       - name: Checkout repo

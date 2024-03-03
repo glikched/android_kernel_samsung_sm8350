@@ -2079,7 +2079,6 @@ static ssize_t rear2_dual_cal_show(struct device *dev,
 		return copy_size;
 
 	return 0;
-
 }
 
 uint32_t rear2_dual_cal_size = FROM_REAR_DUAL_CAL_SIZE;
@@ -2340,7 +2339,6 @@ static ssize_t rear4_dual_cal_show(struct device *dev,
 		return copy_size;
 
 	return 0;
-
 }
 
 uint32_t rear4_dual_cal_size = FROM_REAR_DUAL_CAL_SIZE;

@@ -41,6 +41,8 @@
 #include <asm/traps.h>
 #include <asm/virt.h>
 
+#include <linux/sec_debug.h>
+
 #define FPEXC_IOF	(1 << 0)
 #define FPEXC_DZF	(1 << 1)
 #define FPEXC_OFF	(1 << 2)

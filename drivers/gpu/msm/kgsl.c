@@ -1468,6 +1468,7 @@ err:
 		kfree(dev_priv);
 		pm_runtime_put(&device->pdev->dev);
 	}
+
 	return result;
 }
 

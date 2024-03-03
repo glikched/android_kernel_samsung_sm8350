@@ -20,9 +20,18 @@ if [ "$DEVICE_MODEL" == "SM-G990B" ]; then
 elif [ "$DEVICE_MODEL" == "SM-G990B2" ]; then
     DEVICE_NAME="r9q2"
     DEFCONFIG=vendor/r9q_eur_openx2_defconfig
+elif [ "$DEVICE_MODEL" == "SM-G9960" ]; then
+    DEVICE_NAME="o1q"
+    DEFCONFIG=vendor/o1q_chn_hkx_defconfig
+elif [ "$DEVICE_MODEL" == "SM-G9980" ]; then
+    DEVICE_NAME="p3q"
+    DEFCONFIG=vendor/p3q_chn_hkx_defconfig
+elif [ "$DEVICE_MODEL" == "SM-G9910" ]; then
+    DEVICE_NAME="t2q"
+    DEFCONFIG=vendor/t2q_chn_hkx_defconfig
 else
     echo "Config not found"
-    exit
+    exit 1
 fi
 
 # Check if KSU flag is provided

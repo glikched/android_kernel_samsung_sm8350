@@ -105,7 +105,6 @@ void print_result_with_item_string(uint64_t item_result, char** str_array)
 	QUEST_PRINT(" %s\n", results_str);
 }
 
-
 void quest_print_param_quest_data(void)
 {
 	QUEST_PRINT("======================\n");
@@ -303,7 +302,6 @@ void quest_initialize_curr_step(void)
 	param_quest_ddr_result_data.ddr_err_addr_total = 0;
 	quest_sync_param_quest_ddr_result_data();
 }
-
 
 void quest_load_param_api_gpio_test(void)
 {

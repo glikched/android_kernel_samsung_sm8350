@@ -436,7 +436,6 @@ static ssize_t ssc_hw_rev_store(struct device *dev,
 	return size;
 }
 
-
 void ssr_reason_call_back(char reason[], int len)
 {
 	struct timespec ts;

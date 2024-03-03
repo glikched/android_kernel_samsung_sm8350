@@ -564,6 +564,7 @@ retry:
 		goto retry;
 	}
 
+
 	i = f2fs_lookup_journal_in_cursum(journal, NAT_JOURNAL, nid, 0);
 	if (i >= 0) {
 		ne = nat_in_journal(journal, i);

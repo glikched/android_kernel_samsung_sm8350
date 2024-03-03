@@ -1445,6 +1445,7 @@ static int evdev_connect(struct input_handler *handler, struct input_dev *dev,
 	cdev_init(&evdev->cdev, &evdev_fops);
 
 	error = cdev_device_add(&evdev->cdev, &evdev->dev);
+
 	if (error)
 		goto err_cleanup_evdev;
 

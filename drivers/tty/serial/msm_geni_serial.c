@@ -2610,6 +2610,7 @@ static irqreturn_t msm_geni_serial_isr(int isr, void *dev)
 	spin_lock_irqsave(&uport->lock, flags);
 	msm_geni_serial_handle_isr(uport, &flags, false);
 	spin_unlock_irqrestore(&uport->lock, flags);
+
 	return IRQ_HANDLED;
 }
 

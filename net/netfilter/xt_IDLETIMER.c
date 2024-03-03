@@ -447,8 +447,6 @@ static int idletimer_tg_checkentry(const struct xt_tgchk_param *par)
 	}
 
 	mutex_unlock(&list_mutex);
-	return 0;
-}
 
 static void idletimer_tg_destroy(const struct xt_tgdtor_param *par)
 {

@@ -912,3 +912,4 @@ module_platform_driver(mem_dump_driver);
 
 MODULE_DESCRIPTION("Memory Dump V2 Driver");
 MODULE_LICENSE("GPL v2");
+

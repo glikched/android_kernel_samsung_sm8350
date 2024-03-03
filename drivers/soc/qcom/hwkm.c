@@ -264,6 +264,7 @@ static int qti_hwkm_ice_transaction(struct hwkm_device *dev,
 	u32 val = 0;
 	uint32_t rsp_discard;
 
+
 	// Clear CMD FIFO
 	qti_hwkm_setb(dev, QTI_HWKM_ICE_RG_BANK0_BANKN_CTL,
 			CMD_FIFO_CLEAR_BIT, ICEMEM_SLAVE);

@@ -16,3 +16,56 @@ config MACH_R9Q_EUR_OPENX2
         help
           Support for Samsung R9Q EUR OPENX2 device.
   
+config SEC_O1Q_PROJECT
+	default n
+	bool "Samsung O1Q Project"
+	help
+	  Support for Samsung O1Q Project
+
+config MACH_O1Q_CHN_OPENX
+        default n
+        bool "Samsung O1Q CHN OPENX"
+        help
+          Support for Samsung O1Q CHN OPENX device.
+
+config MACH_O1Q_CHN_HKX
+        default n
+        bool "Samsung O1Q CHN HKX"
+        help
+          Support for Samsung O1Q CHN HKX device.
+
+config SEC_T2Q_PROJECT
+	default n
+	bool "Samsung T2Q Project"
+	help
+	  Support for Samsung T2Q Project
+
+config MACH_T2Q_CHN_OPENX
+        default n
+        bool "Samsung T2Q CHN OPENX"
+        help
+          Support for Samsung T2Q CHN OPENX device.
+
+config MACH_T2Q_CHN_HKX
+        default n
+        bool "Samsung T2Q CHN HKX"
+        help
+          Support for Samsung T2Q CHN HKX device.
+
+config SEC_P3Q_PROJECT
+	default n
+	bool "Samsung P3Q Project"
+	help
+	  Support for Samsung P3Q Project
+
+config MACH_P3Q_CHN_OPENX
+        default n
+        bool "Samsung P3Q CHN OPENX"
+        help
+          Support for Samsung P3Q CHN OPENX device.
+
+config MACH_P3Q_CHN_HKX
+        default n
+        bool "Samsung P3Q CHN HKX"
+        help
+          Support for Samsung P3Q CHN HKX device.
