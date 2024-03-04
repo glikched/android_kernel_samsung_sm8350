@@ -786,6 +786,7 @@ void ccp_dmaengine_unregister(struct ccp_device *ccp)
 	ccp_dma_release_channels(ccp);
 	dma_async_device_unregister(dma_dev);
 	ccp_dma_release(ccp);
+	dma_async_device_unregister(dma_dev);
 
 	kmem_cache_destroy(ccp->dma_desc_cache);
 	kmem_cache_destroy(ccp->dma_cmd_cache);
