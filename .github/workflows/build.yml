@@ -30,13 +30,10 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Fetch Neutron Clang
+      - name: Fetch Neutron Clang and Patch glibc
         run: |
           export Kernel_DIR="$(pwd)"
           mkdir -p "$HOME/toolchains/neutron-clang"; cd "$HOME/toolchains/neutron-clang"; curl -LO "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman"; chmod +x antman; ./antman -S
-
-      - name: Patch Debian Ubuntu old glibc
-        run: |
           ./antman --patch=glibc
           cd $Kernel_DIR
 
