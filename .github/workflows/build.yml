@@ -34,11 +34,9 @@ jobs:
         run: |
           export Kernel_DIR="$(pwd)"
           mkdir -p "$HOME/toolchains/neutron-clang"; cd "$HOME/toolchains/neutron-clang"; curl -LO "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman"; chmod +x antman; ./antman -S
-          cd $Kernel_DIR
 
       - name: Patch Debian Ubuntu old glibc
         run: |
-          export Kernel_DIR="$(pwd)"
           ./antman --patch=glibc
           cd $Kernel_DIR
 
