@@ -23,6 +23,10 @@ devicecheck() {
         DEVICE_NAME="r9q2"
         DEVICE_MODEL="SM-G990B2"
         DEFCONFIG=vendor/r9q_eur_openx2_defconfig
+    elif [[ "$ARGS" == *"RECOVERY"* ]]; then
+        DEVICE_NAME="r9q"
+        DEVICE_MODEL="SM-G990B"
+        DEFCONFIG=vendor/recovery_r9q_defconfig
     else
         echo "- Config not found"
         exit
@@ -124,6 +128,20 @@ help() {
         echo "This build was made using these arguments: $ARGS"
     elif [[ "$ARGS" == *"--help"* ]]; then
         help
+    elif [[ "$ARGS" == *"RECOVERY"* ]]; then
+        echo "- Starting Clean Recovery Kernel Building ..."
+        rm -rf recovery_prebuilts
+        devicecheck
+        toolchaincheck
+        make $MAKE_PARAMS $DEFCONFIG
+        make $MAKE_PARAMS
+        make $MAKE_PARAMS INSTALL_MOD_PATH=modules INSTALL_MOD_STRIP=1 modules_install
+        mkdir -p recovery_prebuilts
+        cp ./out/arch/arm64/boot/Image ./recovery_prebuilts
+        cp ./out/arch/arm64/boot/dtbo.img ./recovery_prebuilts
+        mkdir -p recovery_prebuilts/modules
+        find "$(pwd)/out/modules" -type f -iname "*.ko" -exec cp -r {} ./recovery_prebuilts/modules \;
+        echo "This build was made using these arguments: $ARGS" 
     else
         echo "- Starting Building ..."
         devicecheck
