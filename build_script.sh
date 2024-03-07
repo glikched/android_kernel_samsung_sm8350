@@ -15,16 +15,17 @@ MAKE_PARAMS="-j$JOBS -C $SRC_DIR O=$SRC_DIR/out ARCH=arm64 CC=clang CLANG_TRIPLE
 export PATH="$TC_DIR/bin:$PATH"
 
 devicecheck() {
-    if [[ "$ARGS" == *"SM-G990B"* ]]; then
+    if [ "$1" == "SM-G990B" ]; then
         DEVICE_NAME="r9q"
         DEVICE_MODEL="SM-G990B"
         DEFCONFIG=vendor/r9q_eur_openx_defconfig
-    elif [[ "$ARGS" == *"SM-G990B2"* ]]; then
+    elif [ "$1" == "SM-G990B2" ]; then
         DEVICE_NAME="r9q2"
         DEVICE_MODEL="SM-G990B2"
         DEFCONFIG=vendor/r9q_eur_openx2_defconfig
     else
         echo "- Config not found"
+        echo " Make sure first argument is DEVICE_MODEL"
         exit
     fi
 }
