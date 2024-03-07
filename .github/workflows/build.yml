@@ -77,3 +77,9 @@ jobs:
             :rocket: *Built with love by GitHub Actions.*
         env:
           GITHUB_TOKEN: ${{ secrets.TEST }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AQUA-CI_${{ github.run_number }}-artifacts
+          path: |
+            ./AQUA*.zip
