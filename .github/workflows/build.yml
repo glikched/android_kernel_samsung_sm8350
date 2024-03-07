@@ -55,6 +55,10 @@ jobs:
           source ./build_script.sh ${{ matrix.target }} --ksu
           cp ./AnyKernel3/AQUA* ./
 
+      - name: Format Date
+        id: format_date
+        run: echo "bucharest_time=$(TZ='Europe/Bucharest' date +'%Y-%m-%d %T %Z')" >> $GITHUB_ENV
+
       - name: Publish to GitHub
         id: release
         uses: softprops/action-gh-release@v1
@@ -63,11 +67,11 @@ jobs:
           name: AQUA-CI_${{ github.run_number }}
           tag_name: ${{ github.run_number }}
           body: |
-            **Release Notes - AQUA Kernel**
+            **Release Notes -** :droplet: **AQUA Kernel** :droplet:
 
-            - **Kernel Version:** 5.4.259-aqua
+            - **Kernel Version:** 5.4.259
             - **Clang Version:** Neutron-clang
-            - **Release Date (Bucharest Time):** $(TZ="Europe/Bucharest" date +"%Y-%m-%d %T %Z")
+            - **Release Date (Bucharest Time):** ${{ steps.format_date.outputs.bucharest_time }}
             - **Run Number:** ${{ github.run_number }}
 
             :rocket: *Built with love by GitHub Actions.*
