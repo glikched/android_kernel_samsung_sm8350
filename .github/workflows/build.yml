@@ -19,7 +19,7 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-        
+
       - name: Set up build environment
         run: |
           sudo apt update
@@ -32,10 +32,10 @@ jobs:
 
       - name: Fetch Neutron Clang and Patch glibc
         run: |
-          export Kernel_DIR="$(pwd)"
-          mkdir -p "$HOME/toolchains/neutron-clang"; cd "$HOME/toolchains/neutron-clang"; curl -LO "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman"; chmod +x antman; ./antman -S
-          ./antman --patch=glibc
-          cd $Kernel_DIR
+          export KERNEL_DIR="$(pwd)"
+          mkdir -p "$HOME/toolchains/neutron-clang"; cd "$HOME/toolchains/neutron-clang"
+          curl -LO "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman"; chmod +x antman; ./antman -S; ./antman --patch=glibc
+          cd "$KERNEL_DIR"
 
       - name: Fetch AnyKernel3
         run: |
@@ -56,13 +56,20 @@ jobs:
           cp ./AnyKernel3/AQUA* ./
 
       - name: Publish to GitHub
+        id: release
         uses: softprops/action-gh-release@v1
         with:
           files: AQUA*
-          name: AQUA-CI_${{ github.run_id }}
-          tag_name: ${{ github.run_id }}
+          name: AQUA-CI_${{ github.run_number }}
+          tag_name: ${{ github.run_number }}
           body: |
-            Kernel: 5.4.259-aqua
-            Clang: WeebX
+            **Release Notes - AQUA Kernel**
+
+            - **Kernel Version:** 5.4.259-aqua
+            - **Clang Version:** Neutron-clang
+            - **Release Date (Bucharest Time):** $(TZ="Europe/Bucharest" date +"%Y-%m-%d %T %Z")
+            - **Run Number:** ${{ github.run_number }}
+
+            :rocket: *Built with love by GitHub Actions.*
         env:
           GITHUB_TOKEN: ${{ secrets.TEST }}
