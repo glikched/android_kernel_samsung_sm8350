@@ -83,3 +83,4 @@ jobs:
           name: AQUA-CI_${{ github.run_number }}-${{ matrix.target }}-artifacts
           path: |
             ./AQUA*.zip
+          compression-level: 0
