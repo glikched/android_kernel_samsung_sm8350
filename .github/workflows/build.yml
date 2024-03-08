@@ -80,6 +80,6 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: AQUA-CI_${{ github.run_number }}-artifacts
+          name: AQUA-CI_${{ github.run_number }}-${{ matrix.target }}-artifacts
           path: |
             ./AQUA*.zip
